@@ -1,0 +1,658 @@
+using UnityEngine;
+using System.Collections.Generic;
+using TMPro;
+using System.Collections;
+using Unity.VisualScripting;
+
+
+public class GameDirector : MonoBehaviour
+{
+    // 1. 노드 및 기차 관련 변수
+    public GameObject[] circles; // 노드 저장
+    public GameObject train; // 움직이는 기차
+
+    // 2. 선 관련 변수
+    public GameObject linePrefab; // 라인 렌더러 프리팹
+    private GameObject createSelectedCircle = null; // 선 생성시 첫 번째 노드 저장
+    private GameObject deleteSelectedCircle = null; // 선 삭제시 첫 번째 노드 저장
+    private HashSet<(int, int)> edges = new HashSet<(int, int)>(); // 생성된 간선 목록 (노드 쌍)
+    private List<GameObject> createdLines = new List<GameObject>(); // 생성된 선(GameObject) 목록
+    private Dictionary<(int, int), int> edgeWeights = new Dictionary<(int, int), int>(); // 간선의 가중치 저장 (노드 쌍 -> 가중치)
+
+    // 3. 기차 이동 관련 변수
+    public bool isTrainMoving = false; // 기차가 움직이는지 여부
+    private Vector3 targetPosition; // 기차의 이동 목표 위치
+    private float trainMoveStartTime; // 기차 이동 시작 시간 (추후 애니메이션이나 이동 계산용)
+
+    // 4. 마우스 클릭 및 오류 방지 관련 변수
+    public int create_check = 0; // 선 생성 시 마우스 클릭 오류 방지용
+    public int delete_check = 0; // 선 삭제 시 마우스 클릭 오류 방지용
+
+    // 5. 폰트 및 색깔 저장
+    public TMP_FontAsset font; // 가중치 폰트
+    private Color originalColor; // 기존 색 저장용 변수
+
+    // 6. 기차의 현재 위치 및 목적지 노드 관련 변수
+    public GameObject closestCircle; // 기차의 현재 위치 노드 (가장 가까운 노드)
+    public GameObject targetCircle; // 기차의 목적지 노드 (도달하려는 노드)
+
+
+    // 기본 베이스 코드-------------------------------------------------------------------
+
+    // 알고리즘 코드------
+
+    int[] distance = new int[100]; // 시작점으로부터 최단 경로 거리
+    bool[] found = new bool[100]; // 방문한 정점 표시
+    public const int INF = 100000000;  // INF 값 정의
+    int line_weight; // g 에 넣을 가중치 중간 저장용 변수
+
+    GraphType g = new GraphType(8);// 여기서 노드 갯수 변화는 가능
+    int w_s = 1; //간선 가중치 최소
+    int w_e = 20; // 간선 가중치 최대
+
+    int[] saveRoute; // 경로 추적용
+    int[] vertex; // 노드 저장
+
+    int[] dk_path = new int[100]; // 다익스트라로 출발-> 도착 까지 경로 저장
+    public bool is_dk = false;
+    int currentPathIndex = 1;
+   
+    void Start()
+    {
+        //g.weight[0, 2] = 8; // 값 변하는지 실험용
+        g.PrintGraph(g);
+        DistanceSet(g);
+    }
+
+    void Update()
+    {
+        DetectMouseClick();
+
+        if (Input.GetKeyDown(KeyCode.Space) && !isTrainMoving)
+        {
+            Debug.Log("train_start");
+            CheckCurrentCircleConnections(); //스페이스바 누르면 기차가 무한히 움직임
+        }
+
+        if (Input.GetKeyDown(KeyCode.H) && !isTrainMoving && !is_dk )
+        {
+            TracePath(7, 0); // 출발지는 7, 도착지는 0 으로 가정 및 고정
+            Dk_Move();
+        }
+
+        if( is_dk) // 프레임 마다 이동
+        {
+            Dk_Move(); 
+        }
+
+        if (isTrainMoving) // 프레임 마다 이동
+        {
+            MoveTrainToTarget(); 
+        }
+
+        if (Input.GetKeyDown(KeyCode.M))  // M 키를 눌렀을 때 그래프 확인
+        {
+            g.PrintGraph(g);
+        }
+        if (Input.GetKeyDown(KeyCode.N))  // N 키를 눌렀을 때 그래프 확인
+        {
+            PrintDistance(g);
+        }
+
+        if (Input.GetKeyDown(KeyCode.K))  // k 다읻스트라 알고리즘 실행
+        {
+            Shortest_path(g, 7); // 출발지는 7
+        }
+        if (Input.GetKeyDown(KeyCode.T))  // T 키는 출발지에서 각 노드로의 최단 경로
+        {
+            TraceAllPaths(7); // 츨발지는 7
+        }
+        if (Input.GetKeyDown(KeyCode.Y))  // Y 키를 눌렀을 때 도착지까지의 경로만 확인
+        {
+            TracePath(7,0); // 출발지는 7, 도착지는 0 으로 가정 및 고정
+
+        }
+        if (Input.GetKeyDown(KeyCode.P))  // P 키를 눌렀을 때 기차가 있는 원 위치 확인
+        {
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            Debug.Log(n);  // 추출한 숫자 출력
+        }
+
+    }
+
+    // 다익스트라로 길 찾는 코드--------------------------------------------------------------
+
+
+    int Choose(int[] distance, int n, bool[] found)
+    {
+        int i, min, minpos;
+
+        min = INF;
+        minpos = -1;
+
+        for (i = 0; i < n; i++)
+        {
+            if (distance[i] < min && !found[i])
+            {
+                min = distance[i];
+                minpos = i;
+            }
+        }
+        return minpos;
+    }
+
+    void Shortest_path(GraphType g, int start)
+    {
+        int i, u, w;
+        saveRoute = new int[g.n];
+        vertex = new int[g.n];
+
+        for (i = 0; i < g.n; i++)
+        {
+            vertex[i] = i;
+        } // 경로 배열들 초기화
+
+        for (i = 0; i < g.n; i++)
+        {
+            distance[i] = g.weight[start, i];
+            found[i] = false; // 0 = FALSE ,, TRUE = 1
+            saveRoute[i] = vertex[start];
+        }
+
+        found[start] = true;
+        distance[start] = 0;
+        saveRoute[start] = vertex[start];
+
+        for (i = 0; i < g.n - 1; i++)
+        {
+            Debug.Log("다익스트라~");
+            u = Choose(distance, g.n, found);
+            Debug.Log("선택된 노드 : " + u);
+            if (u == -1)
+            {
+                Debug.Log("다익스트라를 위한 간선 연결 부족");
+                return;
+            }
+            found[u] = true;
+
+            for (w = 0; w < g.n; w++)
+            {
+                if (!found[w])
+                {
+                    if (distance[u] + g.weight[u, w] < distance[w])
+                    {
+                        distance[w] = distance[u] + g.weight[u, w];
+                        saveRoute[w] = vertex[u];
+                    }
+                }
+            }
+        }
+    }
+
+    void TraceAllPaths(int start) // 모든 경로 확인
+    {
+        // 모든 노드에 대해 경로 추적
+        for (int i = 0; i < g.n; i++)
+        {
+            string route = "";
+            Debug.Log("시작 꼭지점 " + vertex[start] + "부터 꼭지점 " + vertex[i] + "까지의 경로");
+
+            int index = i;
+
+            // 경로 추적 (start에서 i까지)
+            Stack<int> path = new Stack<int>(); // Stack을 이용하여 경로 뒤집기
+
+            // 경로 추적
+            while (index != start)
+            {
+                path.Push(vertex[index]); // 현재 노드를 스택에 추가
+                index = stringToInt(saveRoute[index]);  // 결정적인 역할을 한 꼭지점으로 이동
+            }
+
+            // start 노드도 포함시키기
+            path.Push(vertex[start]);
+
+            // 경로 출력
+            while (path.Count > 0)
+            {
+                route += " " + path.Pop();
+            }
+
+            Debug.Log(route);
+        }
+    }
+
+    void TracePath(int start, int end) // 특정 경로 확인
+    {
+        string route = "";
+        Debug.Log("시작 꼭지점 " + vertex[start] + "부터 꼭지점 " + vertex[end] + "까지의 경로");
+
+        int index = end;
+
+        // 경로 추적 (end에서 start까지)
+        Stack<int> path = new Stack<int>(); // Stack을 이용하여 경로 뒤집기
+
+        // 경로 추적
+        while (index != start)
+        {
+            path.Push(vertex[index]); // 현재 노드를 스택에 추가
+            index = stringToInt(saveRoute[index]);  // 결정적인 역할을 한 꼭지점으로 이동
+        }
+
+        // start 노드도 포함시키기
+        path.Push(vertex[start]);
+        int i = 0;
+
+        // 경로 출력
+        while (path.Count > 0)
+        {
+            dk_path[i] = path.Pop();  // 경로에서 노드를 꺼내서 배열에 저장
+            route += " " + dk_path[i]; // 디버깅용 경로 출력
+            i++;
+        }
+
+        Debug.Log(route);
+    }
+
+
+
+    // 노드를 int로 변환하는 함수 (필요한 경우에만 사용)
+    int stringToInt(int vertex)
+    {
+        return vertex; // 현재는 vertex가 이미 정수형이므로 그냥 반환
+    }
+
+    void PrintDistance(GraphType g) // 거리값 확인 함수
+    {
+        string distanceString = "";  // 거리 값을 저장할 변수
+
+        // distance 배열의 값들을 한 줄로 합침
+        for (int i = 0; i < g.n; i++)  // 노드 개수만큼
+        {
+            distanceString += distance[i].ToString() + "\t";  // 각 값을 탭으로 구분하여 추가
+        }
+
+        // 한 줄로 합쳐진 거리 출력
+        Debug.Log(distanceString);
+    }
+    void DistanceSet(GraphType g)
+    {
+        for (int i = 0; i < g.n; i++)  // 0부터 7까지
+        {
+            distance[i] = 0;
+        }
+    }
+
+    // 아래는 기차 베이스 코드-----------------------------------------------------------------------
+
+    void CheckCurrentCircleConnections()
+    {
+        closestCircle = GetClosestCircle(train.transform.position);
+
+        if (closestCircle != null)
+        {
+            int currentIndex = System.Array.IndexOf(circles, closestCircle);
+            Debug.Log("현재 위치한 원 = " + closestCircle.name);
+
+            targetCircle = null;
+            int minWeight = int.MaxValue;
+
+            foreach (var edge in edges)
+            {
+                if (edge.Item1 == currentIndex || edge.Item2 == currentIndex)
+                {
+                    int connectedIndex = (edge.Item1 == currentIndex) ? edge.Item2 : edge.Item1;
+                    int weight = edgeWeights[(edge.Item1, edge.Item2)];
+
+                    Debug.Log("연결된 원 = " + circles[connectedIndex].name + ", 가중치 = " + weight);
+
+                    if (weight < minWeight)
+                    {
+                        minWeight = weight;
+                        targetCircle = circles[connectedIndex];
+                    }
+                }
+            }
+
+            if (targetCircle != null)
+            {
+                Debug.Log("가장 낮은 가중치로 이동할 원 = " + targetCircle.name + ", 가중치 = " + minWeight);
+                targetPosition = targetCircle.transform.position;
+                isTrainMoving = true;
+                trainMoveStartTime = Time.time;
+
+            }
+            else
+            {
+                Debug.Log("line_off");
+            }
+        }
+    }
+
+    int GetCircle()
+    {
+        closestCircle = GetClosestCircle(train.transform.position);  // closestCircle은 GameObject 타입
+        string circleName = closestCircle.name;  // GameObject의 이름을 가져옴
+        string circleNumberString = circleName.Substring(6);  // "Circle" 이후의 숫자 부분만 추출
+        int n = int.Parse(circleNumberString);  // 숫자 문자열을 int로 변환
+
+        return n;
+    }
+
+    void MoveTrainToTarget()
+    {
+        float duration = 4f; // 이동할 시간 (초)
+        float timeElapsed = Time.time - trainMoveStartTime;
+        float speedMultiplier = 4f; // 이 값을 조정하여 이동 속도를 증가시킬 수 있습니다.
+
+        // 이동할 거리 (목표까지의 거리)
+        float distance = Vector3.Distance(train.transform.position, targetPosition);
+
+        // 일정한 속도로 이동 (속도 = 거리 / 시간)
+        if (timeElapsed < duration)
+        {
+            // 이동할 거리 비율을 계산하여 일정 속도로 이동
+            float step = distance / duration * Time.deltaTime;
+
+            // 일정한 속도로 이동 (속도 증가 적용)
+            train.transform.position = Vector3.MoveTowards(train.transform.position, targetPosition, step * speedMultiplier);
+        }
+        else
+        {
+            // 지정한 시간이 지나면 순간이동
+            train.transform.position = targetPosition;
+            isTrainMoving = false;  // 이동 완료 후 isTrainMoving을 false로 설정
+            closestCircle = null;
+            targetCircle = null;
+
+            StartCoroutine(RestoreTrainMovement());
+        }
+    }
+
+    IEnumerator RestoreTrainMovement()
+    {
+        // 1초 대기
+        yield return new WaitForSeconds(1f);
+
+        // 1초 후에 기차가 다시 이동할 수 있도록 설정
+        CheckCurrentCircleConnections();
+        isTrainMoving = true;
+    }
+
+    void Dk_Move()
+    {
+        // duration을 경로마다 이동할 시간으로 설정
+        float duration = 3f; // 각 경로 사이 이동 시간 (초)
+        float timeElapsed = Time.time - trainMoveStartTime;
+        is_dk = true;
+        float speedMultiplier = 3f;
+
+        // 경로가 남아 있을 때
+        if (currentPathIndex < dk_path.Length)
+        {
+            // 현재 목표 지점 (dk_path[currentPathIndex]는 목표로 가야 할 circle 번호)
+            targetPosition = circles[dk_path[currentPathIndex]].transform.position;
+
+            // 목표 위치까지의 거리
+            float distance = Vector3.Distance(train.transform.position, targetPosition);
+
+            // 이동할 거리 비율을 계산하여 일정 속도로 이동
+            float step = distance / duration * Time.deltaTime;
+
+            // 속도 증가 배율 적용
+            train.transform.position = Vector3.MoveTowards(train.transform.position, targetPosition, step * speedMultiplier);
+
+            // 목표 지점에 도달했는지 확인
+            if (distance < 0.1f)  // 목표 위치에 충분히 가까워졌을 때
+            {
+                // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
+                currentPathIndex++;
+
+                // 이동을 계속 진행할 수 있도록 timeElapsed을 초기화 (이전 시간 경과를 계속 사용할 필요 없음)
+                trainMoveStartTime = Time.time;
+
+                // 경로 끝까지 갔으면 이동을 종료
+                if (currentPathIndex >= dk_path.Length)
+                {
+                    isTrainMoving = false;  // 기차 이동 완료
+                    is_dk = false;
+                    closestCircle = null;
+                    targetCircle = null;
+                    currentPathIndex = 1;
+                }
+            }
+        }
+    }
+
+
+
+
+    GameObject GetClosestCircle(Vector3 position)
+    {
+        GameObject closestCircle = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (GameObject circle in circles)
+        {
+            float distance = Vector3.Distance(position, circle.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closestCircle = circle;
+            }
+        }
+        return closestCircle;
+    }
+
+    void DetectMouseClick()
+    {
+        if (Input.GetMouseButtonDown(0) && delete_check != 1)
+        {
+            Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePosition.z = 0;
+
+            GameObject clickedCircle = GetClickedCircle(mousePosition);
+
+            if (clickedCircle != null)
+            {
+                int clickedIndex = System.Array.IndexOf(circles, clickedCircle);
+
+                if (createSelectedCircle == clickedCircle)// 자기 자신노드에서 자기 자신으로 간선 추가 방지
+                {
+                    create_check = 0;
+                    ChangeCircleColor(createSelectedCircle, originalColor);
+                    createSelectedCircle = null;
+                    return;
+                }
+
+                if (createSelectedCircle == null) // 첫번째 노드 클릭
+                {
+                    Debug.Log(clickedCircle + " 추가 1"); // 1 원 확인
+                    createSelectedCircle = clickedCircle;
+                    originalColor = clickedCircle.GetComponent<SpriteRenderer>().color;
+                    ChangeCircleColor(clickedCircle, Color.green);
+                    create_check = 1;
+                }
+                else // 간선 연결한 두번째 노드 클릭시
+                {
+                    Debug.Log(clickedCircle + " 추가 2"); // 2 원 확인
+                    CreateEdge(createSelectedCircle, clickedCircle); // 간선 추가 함수
+                    ChangeCircleColor(createSelectedCircle, originalColor); // 색 복원
+
+                    int firstIndex = int.Parse(createSelectedCircle.name.Replace("Circle", ""));
+                    int secondIndex = int.Parse(clickedCircle.name.Replace("Circle", ""));
+
+                    // 간선의 양방향 가중치 업데이트
+                    g.weight[firstIndex, secondIndex] = line_weight;
+                    g.weight[secondIndex, firstIndex] = line_weight;
+
+                    createSelectedCircle = null;
+                    create_check = 0;
+                }
+            }
+        }
+        else if (Input.GetMouseButtonDown(1) && create_check != 1)
+        {
+            Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePosition.z = 0;
+
+            GameObject clickedCircle = GetClickedCircle(mousePosition);
+
+            if (clickedCircle != null)
+            {
+                int clickedIndex = System.Array.IndexOf(circles, clickedCircle);
+
+                if (deleteSelectedCircle == null)
+                {
+                    deleteSelectedCircle = clickedCircle;
+                    originalColor = clickedCircle.GetComponent<SpriteRenderer>().color;
+                    ChangeCircleColor(clickedCircle, Color.red);
+                    delete_check = 1;
+                }
+                else
+                {
+                    // 간선이 기차의 이동 경로에 포함되면 삭제할 수 없게 막음
+                    if (IsTrainOnEdge(deleteSelectedCircle, clickedCircle))
+                    {
+                        Debug.Log("기차가 이 간선을 이동 중이므로 삭제할 수 없습니다.");
+                        ChangeCircleColor(deleteSelectedCircle, originalColor);
+                        deleteSelectedCircle = null;
+                        delete_check = 0;
+                        return;  // 간선이 기차의 경로에 포함되면 삭제 불가
+                    }
+
+                    int firstIndex = int.Parse(deleteSelectedCircle.name.Replace("Circle", ""));
+                    int secondIndex = int.Parse(clickedCircle.name.Replace("Circle", ""));
+
+                    g.weight[firstIndex, secondIndex] = INF;
+                    g.weight[secondIndex, firstIndex] = INF;
+
+                    DeleteEdge(deleteSelectedCircle, clickedCircle);
+                    ChangeCircleColor(deleteSelectedCircle, originalColor);
+                    deleteSelectedCircle = null;
+                    delete_check = 0;
+                }
+            }
+        }
+    }
+
+    bool IsTrainOnEdge(GameObject start, GameObject end)
+    {
+        if (start == closestCircle && end == targetCircle)
+        {
+            return true;
+        }
+        else if (start == targetCircle && end == closestCircle)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    GameObject GetClickedCircle(Vector3 mousePosition)
+    {
+        foreach (GameObject circle in circles)
+        {
+            if (Vector3.Distance(circle.transform.position, mousePosition) < 0.5f)
+            {
+                return circle;
+            }
+        }
+        return null;
+    }
+
+    void CreateEdge(GameObject start, GameObject end)
+    {
+        int first = Mathf.Min(System.Array.IndexOf(circles, start), System.Array.IndexOf(circles, end));
+        int second = Mathf.Max(System.Array.IndexOf(circles, start), System.Array.IndexOf(circles, end));
+
+        if (!edges.Contains((first, second)))
+        {
+            GameObject lineObject = Instantiate(linePrefab);
+            LineRenderer lineRenderer = lineObject.GetComponent<LineRenderer>();
+
+            lineRenderer.SetPosition(0, start.transform.position);
+            lineRenderer.SetPosition(1, end.transform.position);
+
+            lineRenderer.startWidth = 0.2f;
+            lineRenderer.endWidth = 0.2f;
+            lineRenderer.material.color = Color.black;
+
+            edges.Add((first, second));
+            createdLines.Add(lineObject);
+            int weight = Random.Range(w_s, w_e);
+            edgeWeights[(first, second)] = weight;
+            DisplayEdgeWeight(lineObject, weight);
+
+            line_weight = weight; // 클릭 함수에서 g 에 가중치 넣기 위해 전역으로 저장
+        }
+    }
+
+    void DeleteEdge(GameObject start, GameObject end)
+    {
+        int first = Mathf.Min(System.Array.IndexOf(circles, start), System.Array.IndexOf(circles, end));
+        int second = Mathf.Max(System.Array.IndexOf(circles, start), System.Array.IndexOf(circles, end));
+
+        if (edges.Contains((first, second)))
+        {
+            edges.Remove((first, second));
+
+            foreach (var line in createdLines)
+            {
+                LineRenderer lineRenderer = line.GetComponent<LineRenderer>();
+                if (AreLinesEqual(lineRenderer, start, end))
+                {
+                    Destroy(line);
+                    createdLines.Remove(line);
+                    break;
+                }
+            }
+        }
+    }
+
+    bool AreLinesEqual(LineRenderer lineRenderer, GameObject start, GameObject end)
+    {
+        return (Vector3.Distance(lineRenderer.GetPosition(0), start.transform.position) < 0.1f &&
+                Vector3.Distance(lineRenderer.GetPosition(1), end.transform.position) < 0.1f) ||
+               (Vector3.Distance(lineRenderer.GetPosition(1), start.transform.position) < 0.1f &&
+                Vector3.Distance(lineRenderer.GetPosition(0), end.transform.position) < 0.1f);
+    }
+
+    void ChangeCircleColor(GameObject circle, Color color)
+    {
+        circle.GetComponent<SpriteRenderer>().color = color;
+    }
+
+    void DisplayEdgeWeight(GameObject lineObject, int weight)
+    {
+        GameObject weightTextObject = new GameObject("WeightText");
+        weightTextObject.transform.SetParent(lineObject.transform);
+
+        Vector3 midPoint = (lineObject.GetComponent<LineRenderer>().GetPosition(0) + lineObject.GetComponent<LineRenderer>().GetPosition(1)) / 2;
+        midPoint.z = -9f;
+
+        weightTextObject.transform.position = midPoint;
+
+        TextMeshPro textMesh = weightTextObject.AddComponent<TextMeshPro>();
+        textMesh.text = weight.ToString();
+        textMesh.fontSize = 10f;
+        textMesh.color = Color.red;
+        textMesh.alignment = TextAlignmentOptions.Center;
+        textMesh.rectTransform.sizeDelta = new Vector2(2f, 1f);
+    }
+
+    bool IsTrainCurrentlyOnCircle(GameObject circle)
+    {
+        // 기차가 이동 중인 간선의 두 점과 기차의 현재 위치, 목표 위치가 비교됩니다.
+        if (train.transform.position == circle.transform.position || targetPosition == circle.transform.position)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+}
