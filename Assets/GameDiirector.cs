@@ -355,12 +355,17 @@ public class GameDirector : MonoBehaviour
             float step = distance / duration * Time.deltaTime;
 
             // 일정한 속도로 이동 (속도 증가 적용)
-            train.transform.position = Vector3.MoveTowards(train.transform.position, targetPosition, step * speedMultiplier);
+            Vector3 newPosition = Vector3.MoveTowards(train.transform.position, targetPosition, step * speedMultiplier);
+
+            // z 값을 항상 -5로 고정
+            newPosition.z = -5f;
+
+            train.transform.position = newPosition;
         }
         else
         {
             // 지정한 시간이 지나면 순간이동
-            train.transform.position = targetPosition;
+            train.transform.position = new Vector3(targetPosition.x, targetPosition.y, -5f);
             isTrainMoving = false;  // 이동 완료 후 isTrainMoving을 false로 설정
             closestCircle = null;
             targetCircle = null;
@@ -391,18 +396,25 @@ public class GameDirector : MonoBehaviour
         if (currentPathIndex < dk_path.Length)
         {
             // 현재 목표 지점 (dk_path[currentPathIndex]는 목표로 가야 할 circle 번호)
-            targetPosition = circles[dk_path[currentPathIndex]].transform.position;
+            Vector2 targetPosition2D = new Vector2(circles[dk_path[currentPathIndex]].transform.position.x,
+                                                   circles[dk_path[currentPathIndex]].transform.position.y);
 
-            // 목표 위치까지의 거리
-            float distance = Vector3.Distance(train.transform.position, targetPosition);
+            // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
+            Vector2 trainPosition2D = new Vector2(train.transform.position.x, train.transform.position.y);
+
+            // 목표 위치까지의 거리 (x와 y 좌표만 기준으로 계산)
+            float distance = Vector2.Distance(trainPosition2D, targetPosition2D);
 
             // 이동할 거리 비율을 계산하여 일정 속도로 이동
             float step = distance / duration * Time.deltaTime;
 
-            // 속도 증가 배율 적용
-            train.transform.position = Vector3.MoveTowards(train.transform.position, targetPosition, step * speedMultiplier);
+            // 속도 증가 배율 적용 및 2D 위치 업데이트
+            Vector2 newPosition2D = Vector2.MoveTowards(trainPosition2D, targetPosition2D, step * speedMultiplier);
 
-            // 목표 지점에 도달했는지 확인
+            // 새 위치에 z 값을 -5로 고정하여 이동 적용
+            train.transform.position = new Vector3(newPosition2D.x, newPosition2D.y, -5f);
+
+            // 목표 지점에 도달했는지 확인 (x, y 기준으로만 거리 확인)
             if (distance < 0.1f)  // 목표 위치에 충분히 가까워졌을 때
             {
                 // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
@@ -414,6 +426,7 @@ public class GameDirector : MonoBehaviour
                 // 경로 끝까지 갔으면 이동을 종료
                 if (currentPathIndex >= dk_path.Length)
                 {
+                    train.transform.position = new Vector3(targetPosition2D.x, targetPosition2D.y, -5f); // 최종 도착 시 z 값 고정
                     isTrainMoving = false;  // 기차 이동 완료
                     is_dk = false;
                     closestCircle = null;
@@ -423,8 +436,6 @@ public class GameDirector : MonoBehaviour
             }
         }
     }
-
-
 
 
     GameObject GetClosestCircle(Vector3 position)
@@ -577,8 +588,8 @@ public class GameDirector : MonoBehaviour
             lineRenderer.SetPosition(0, start.transform.position);
             lineRenderer.SetPosition(1, end.transform.position);
 
-            lineRenderer.startWidth = 0.2f;
-            lineRenderer.endWidth = 0.2f;
+            lineRenderer.startWidth = 0.1f;
+            lineRenderer.endWidth = 0.1f;
             lineRenderer.material.color = Color.black;
 
             edges.Add((first, second));
