@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using TMPro;
 using System.Collections;
 using Unity.VisualScripting;
+using UnityEngine.UI;
+using System.IO;
 
 
 public class GameDirector : MonoBehaviour
@@ -10,6 +12,7 @@ public class GameDirector : MonoBehaviour
     // 1. 노드 및 기차 관련 변수
     public GameObject[] circles; // 노드 저장
     public GameObject train; // 움직이는 기차
+
 
     // 2. 선 관련 변수
     public GameObject linePrefab; // 라인 렌더러 프리팹
@@ -33,8 +36,8 @@ public class GameDirector : MonoBehaviour
     private Color originalColor; // 기존 색 저장용 변수
 
     // 6. 기차의 현재 위치 및 목적지 노드 관련 변수
-    public GameObject closestCircle; // 기차의 현재 위치 노드 (가장 가까운 노드)
-    public GameObject targetCircle; // 기차의 목적지 노드 (도달하려는 노드)
+    GameObject closestCircle; // 기차의 현재 위치 노드 (가장 가까운 노드)
+    GameObject targetCircle; // 기차의 목적지 노드 (도달하려는 노드)
 
 
     // 기본 베이스 코드-------------------------------------------------------------------
@@ -55,13 +58,24 @@ public class GameDirector : MonoBehaviour
 
     int[] dk_path = new int[100]; // 다익스트라로 출발-> 도착 까지 경로 저장
     public bool is_dk = false;
-    int currentPathIndex = 1;
-   
+    int currentPathIndex = 1; // 기차 이동시 몇번 이동 했는지
+    int path_num; // 기차가 몇번 이동 해야하는지 ( 다익스트라 )
+
+
+    // UI 관련 코드
+    public Image[] uiImages; // UI에 있는 Image 컴포넌트 3개를 드래그하여 연결
+    public Sprite[] nodeSprites; // 사용할 이미지 스프라이트 배열 (0부터 7까지 노드 이미지)
+
+    public int one_ui, two_ui, three_ui; // 1 번인 다음 목적지. 2,3, 번은 대기
+
     void Start()
     {
         //g.weight[0, 2] = 8; // 값 변하는지 실험용
-        g.PrintGraph(g);
-        DistanceSet(g);
+        Application.targetFrameRate = 60; // 60 프레임 고정
+        g.PrintGraph(g); // 디버깅
+        DistanceSet(g); // g 초기화
+
+        SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
     }
 
     void Update()
@@ -76,7 +90,8 @@ public class GameDirector : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.H) && !isTrainMoving && !is_dk )
         {
-            TracePath(7, 0); // 출발지는 7, 도착지는 0 으로 가정 및 고정
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
             Dk_Move();
         }
 
@@ -101,15 +116,18 @@ public class GameDirector : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.K))  // k 다읻스트라 알고리즘 실행
         {
-            Shortest_path(g, 7); // 출발지는 7
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            Shortest_path(g, n); 
         }
         if (Input.GetKeyDown(KeyCode.T))  // T 키는 출발지에서 각 노드로의 최단 경로
         {
-            TraceAllPaths(7); // 츨발지는 7
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            TraceAllPaths(n); 
         }
         if (Input.GetKeyDown(KeyCode.Y))  // Y 키를 눌렀을 때 도착지까지의 경로만 확인
         {
-            TracePath(7,0); // 출발지는 7, 도착지는 0 으로 가정 및 고정
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            TracePath(n, one_ui); // 출발지는 현재 위치, 도착지는 1번
 
         }
         if (Input.GetKeyDown(KeyCode.P))  // P 키를 눌렀을 때 기차가 있는 원 위치 확인
@@ -117,7 +135,74 @@ public class GameDirector : MonoBehaviour
             int n = GetCircle(); // 위치한 원 숫자 받기 함수
             Debug.Log(n);  // 추출한 숫자 출력
         }
+        if (Input.GetKeyDown(KeyCode.Q))  // Q 버튼을 클릭하면 이미지 교체
+        {
+            SwapImages();
+        }
+        if (Input.GetKeyDown(KeyCode.W))  // W 키를 눌렀을 때 모든 간선 삭제
+        {
+            DeleteAllEdges();
+        }
 
+    }
+
+    void SetRandomImages(int n)
+    {
+        // 0부터 7까지의 노드 중 랜덤하게 3개 선택, n은 제외
+        List<int> randomNodes = new List<int>();
+        while (randomNodes.Count < 3)
+        {
+            int randomNum = Random.Range(0, nodeSprites.Length);
+            if (randomNum != n && !randomNodes.Contains(randomNum)) // n과 중복된 값 제외
+            {
+                randomNodes.Add(randomNum);
+            }
+        }
+        one_ui = randomNodes[0];
+        two_ui = randomNodes[1];
+        three_ui = randomNodes[2];
+
+        // 선택된 노드에 따라 이미지 변경
+        for (int i = 0; i < uiImages.Length; i++)
+        {
+            uiImages[i].sprite = nodeSprites[randomNodes[i]]; // 각 Image에 스프라이트 할당
+        }
+    }
+
+    void SwapImages()
+    {
+        // 첫 번째 이미지 값은 두 번째로, 두 번째 이미지 값은 세 번째로 변경
+        int temp = one_ui;
+        one_ui = two_ui;
+        two_ui = three_ui;
+
+        // 세 번째 이미지는 두 번째 이미지 값과 겹치지 않는 랜덤 값으로 변경
+        int randomNum;
+        do
+        {
+            randomNum = Random.Range(0, nodeSprites.Length);  // 0부터 7까지 랜덤값
+        } while (randomNum == two_ui);  // 두 번째 이미지 값과 겹치지 않게
+
+        three_ui = randomNum;
+
+        // 변경된 이미지 값으로 UI 업데이트
+        uiImages[0].sprite = nodeSprites[one_ui];
+        uiImages[1].sprite = nodeSprites[two_ui];
+        uiImages[2].sprite = nodeSprites[three_ui];
+    }
+
+    void DeleteAllEdges()
+    {
+        // 모든 정점 쌍에 대해 DeleteEdge 호출
+        for (int i = 0; i < circles.Length; i++)
+        {
+            for (int j = i + 1; j < circles.Length; j++)
+            {
+                // 두 정점 사이 간선을 삭제
+                DeleteEdge(circles[i], circles[j]);
+            }
+        }
+        g.SetGraph(8);
     }
 
     // 다익스트라로 길 찾는 코드--------------------------------------------------------------
@@ -228,6 +313,7 @@ public class GameDirector : MonoBehaviour
         Debug.Log("시작 꼭지점 " + vertex[start] + "부터 꼭지점 " + vertex[end] + "까지의 경로");
 
         int index = end;
+        path_num = 0;
 
         // 경로 추적 (end에서 start까지)
         Stack<int> path = new Stack<int>(); // Stack을 이용하여 경로 뒤집기
@@ -249,6 +335,7 @@ public class GameDirector : MonoBehaviour
             dk_path[i] = path.Pop();  // 경로에서 노드를 꺼내서 배열에 저장
             route += " " + dk_path[i]; // 디버깅용 경로 출력
             i++;
+            path_num++;
         }
 
         Debug.Log(route);
@@ -387,13 +474,12 @@ public class GameDirector : MonoBehaviour
     void Dk_Move()
     {
         // duration을 경로마다 이동할 시간으로 설정
-        float duration = 3f; // 각 경로 사이 이동 시간 (초)
+        float duration = 2.5f; // 각 경로 사이 이동 시간 (초)
         float timeElapsed = Time.time - trainMoveStartTime;
         is_dk = true;
         float speedMultiplier = 3f;
-
         // 경로가 남아 있을 때
-        if (currentPathIndex < dk_path.Length)
+        if (currentPathIndex < path_num) //
         {
             // 현재 목표 지점 (dk_path[currentPathIndex]는 목표로 가야 할 circle 번호)
             Vector2 targetPosition2D = new Vector2(circles[dk_path[currentPathIndex]].transform.position.x,
@@ -417,14 +503,14 @@ public class GameDirector : MonoBehaviour
             // 목표 지점에 도달했는지 확인 (x, y 기준으로만 거리 확인)
             if (distance < 0.1f)  // 목표 위치에 충분히 가까워졌을 때
             {
+                Debug.Log(currentPathIndex);
                 // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
                 currentPathIndex++;
-
                 // 이동을 계속 진행할 수 있도록 timeElapsed을 초기화 (이전 시간 경과를 계속 사용할 필요 없음)
                 trainMoveStartTime = Time.time;
 
                 // 경로 끝까지 갔으면 이동을 종료
-                if (currentPathIndex >= dk_path.Length)
+                if (currentPathIndex >= path_num)
                 {
                     train.transform.position = new Vector3(targetPosition2D.x, targetPosition2D.y, -5f); // 최종 도착 시 z 값 고정
                     isTrainMoving = false;  // 기차 이동 완료
@@ -432,6 +518,7 @@ public class GameDirector : MonoBehaviour
                     closestCircle = null;
                     targetCircle = null;
                     currentPathIndex = 1;
+                    SwapImages();
                 }
             }
         }
@@ -666,4 +753,4 @@ public class GameDirector : MonoBehaviour
         return false;
     }
 
-}
+}
