@@ -61,6 +61,8 @@ public class GameDirector : MonoBehaviour
     int currentPathIndex = 1; // 기차 이동시 몇번 이동 했는지
     int path_num; // 기차가 몇번 이동 해야하는지 ( 다익스트라 )
 
+    bool dk_can; // 다익스트라 알고리즘이 시행 불가능할 경우, 최단 경로로 이동하는 함수 실행 불가능하게
+
 
     // UI 관련 코드
     public Image[] uiImages; // UI에 있는 Image 컴포넌트 3개를 드래그하여 연결
@@ -143,6 +145,20 @@ public class GameDirector : MonoBehaviour
         {
             DeleteAllEdges();
         }
+        if(Input.GetKeyDown(KeyCode.G) && !isTrainMoving && !is_dk )  // 최단거리까지 이동
+        {
+            dk_can = true;
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            Shortest_path(g, n);
+            if (dk_can == false)
+                return; // 다익스트라 실행 안되는 경우 멈추기
+            TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
+            Dk_Move();
+        }
+        if (Input.GetKeyDown(KeyCode.E))  // W 키를 눌렀을 때 모든 간선 삭제
+        {
+            GenerateRandomEdges();
+        }
 
     }
 
@@ -181,7 +197,7 @@ public class GameDirector : MonoBehaviour
         do
         {
             randomNum = Random.Range(0, nodeSprites.Length);  // 0부터 7까지 랜덤값
-        } while (randomNum == two_ui);  // 두 번째 이미지 값과 겹치지 않게
+        } while (randomNum == temp || randomNum == one_ui || randomNum == two_ui);  // 두 번째 이미지 값과 겹치지 않게
 
         three_ui = randomNum;
 
@@ -203,6 +219,31 @@ public class GameDirector : MonoBehaviour
             }
         }
         g.SetGraph(8);
+    }
+    void GenerateRandomEdges()
+    {
+
+        List<(int, int)> possibleEdges = new List<(int, int)>();
+
+        // 가능한 모든 간선 쌍 생성 (중복 방지)
+        for (int i = 0; i < circles.Length; i++)
+        {
+            for (int j = i + 1; j < circles.Length; j++)
+            {
+                possibleEdges.Add((i, j));
+            }
+        }
+
+        // 정점 - 1개의 간선을 랜덤하게 선택하여 생성
+        int edgeCount = circles.Length - 1;
+        for (int k = 0; k < edgeCount; k++)
+        {
+            int randomIndex = Random.Range(0, possibleEdges.Count);
+            (int startIdx, int endIdx) = possibleEdges[randomIndex];
+            possibleEdges.RemoveAt(randomIndex);
+
+            CreateEdge(circles[startIdx], circles[endIdx]);
+        }
     }
 
     // 다익스트라로 길 찾는 코드--------------------------------------------------------------
@@ -252,10 +293,11 @@ public class GameDirector : MonoBehaviour
         {
             Debug.Log("다익스트라~");
             u = Choose(distance, g.n, found);
-            Debug.Log("선택된 노드 : " + u);
+            //Debug.Log("선택된 노드 : " + u);
             if (u == -1)
             {
                 Debug.Log("다익스트라를 위한 간선 연결 부족");
+                dk_can = false;
                 return;
             }
             found[u] = true;
@@ -473,41 +515,27 @@ public class GameDirector : MonoBehaviour
 
     void Dk_Move()
     {
-        // duration을 경로마다 이동할 시간으로 설정
-        float duration = 2.5f; // 각 경로 사이 이동 시간 (초)
-        float timeElapsed = Time.time - trainMoveStartTime;
+
         is_dk = true;
-        float speedMultiplier = 3f;
         // 경로가 남아 있을 때
         if (currentPathIndex < path_num) //
         {
             // 현재 목표 지점 (dk_path[currentPathIndex]는 목표로 가야 할 circle 번호)
-            Vector2 targetPosition2D = new Vector2(circles[dk_path[currentPathIndex]].transform.position.x,
-                                                   circles[dk_path[currentPathIndex]].transform.position.y);
+            Vector3 targetPosition2D = new Vector3(circles[dk_path[currentPathIndex]].transform.position.x,
+                                                   circles[dk_path[currentPathIndex]].transform.position.y,
+                                                   -5f);
 
             // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
-            Vector2 trainPosition2D = new Vector2(train.transform.position.x, train.transform.position.y);
+            Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
 
-            // 목표 위치까지의 거리 (x와 y 좌표만 기준으로 계산)
-            float distance = Vector2.Distance(trainPosition2D, targetPosition2D);
-
-            // 이동할 거리 비율을 계산하여 일정 속도로 이동
-            float step = distance / duration * Time.deltaTime;
-
-            // 속도 증가 배율 적용 및 2D 위치 업데이트
-            Vector2 newPosition2D = Vector2.MoveTowards(trainPosition2D, targetPosition2D, step * speedMultiplier);
-
-            // 새 위치에 z 값을 -5로 고정하여 이동 적용
-            train.transform.position = new Vector3(newPosition2D.x, newPosition2D.y, -5f);
-
+            train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.1f);
+            
             // 목표 지점에 도달했는지 확인 (x, y 기준으로만 거리 확인)
-            if (distance < 0.1f)  // 목표 위치에 충분히 가까워졌을 때
+            if (trainPosition2D == targetPosition2D )  // 목표 위치에 충분히 가까워졌을 때
             {
-                Debug.Log(currentPathIndex);
+                //Debug.Log(currentPathIndex);
                 // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
                 currentPathIndex++;
-                // 이동을 계속 진행할 수 있도록 timeElapsed을 초기화 (이전 시간 경과를 계속 사용할 필요 없음)
-                trainMoveStartTime = Time.time;
 
                 // 경로 끝까지 갔으면 이동을 종료
                 if (currentPathIndex >= path_num)
@@ -577,12 +605,7 @@ public class GameDirector : MonoBehaviour
                     CreateEdge(createSelectedCircle, clickedCircle); // 간선 추가 함수
                     ChangeCircleColor(createSelectedCircle, originalColor); // 색 복원
 
-                    int firstIndex = int.Parse(createSelectedCircle.name.Replace("Circle", ""));
-                    int secondIndex = int.Parse(clickedCircle.name.Replace("Circle", ""));
-
-                    // 간선의 양방향 가중치 업데이트
-                    g.weight[firstIndex, secondIndex] = line_weight;
-                    g.weight[secondIndex, firstIndex] = line_weight;
+                    
 
                     createSelectedCircle = null;
                     create_check = 0;
@@ -686,6 +709,10 @@ public class GameDirector : MonoBehaviour
             DisplayEdgeWeight(lineObject, weight);
 
             line_weight = weight; // 클릭 함수에서 g 에 가중치 넣기 위해 전역으로 저장
+       
+            // 간선의 양방향 가중치 업데이트
+            g.weight[first, second] = line_weight;
+            g.weight[second, first] = line_weight;
         }
     }
 
