@@ -13,7 +13,7 @@ public class GraphType
         SetGraph(n);
     }
 
-    public void  SetGraph(int n) // g 값 초기화 하는 코드
+    public void SetGraph(int n) // g 값 초기화 하는 코드
     {
         for (int i = 0; i < n; i++)
         {

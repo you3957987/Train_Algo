@@ -70,6 +70,13 @@ public class GameDirector : MonoBehaviour
 
     public int one_ui, two_ui, three_ui; // 1 번인 다음 목적지. 2,3, 번은 대기
 
+    // 배낭 문제 알고리즘 코드
+    BagDirector BagDirector;
+
+    public TMP_Text line_one, line_two, line_three;
+    public int next_line; // 다음 간선 생성시 가중치
+    bool click_create; // 클릭으로 간선 선택시
+
     void Start()
     {
         //g.weight[0, 2] = 8; // 값 변하는지 실험용
@@ -78,6 +85,7 @@ public class GameDirector : MonoBehaviour
         DistanceSet(g); // g 초기화
 
         SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
+        SetRandomLine();
     }
 
     void Update()
@@ -116,27 +124,6 @@ public class GameDirector : MonoBehaviour
             PrintDistance(g);
         }
 
-        if (Input.GetKeyDown(KeyCode.K))  // k 다읻스트라 알고리즘 실행
-        {
-            int n = GetCircle(); // 위치한 원 숫자 받기 함수
-            Shortest_path(g, n); 
-        }
-        if (Input.GetKeyDown(KeyCode.T))  // T 키는 출발지에서 각 노드로의 최단 경로
-        {
-            int n = GetCircle(); // 위치한 원 숫자 받기 함수
-            TraceAllPaths(n); 
-        }
-        if (Input.GetKeyDown(KeyCode.Y))  // Y 키를 눌렀을 때 도착지까지의 경로만 확인
-        {
-            int n = GetCircle(); // 위치한 원 숫자 받기 함수
-            TracePath(n, one_ui); // 출발지는 현재 위치, 도착지는 1번
-
-        }
-        if (Input.GetKeyDown(KeyCode.P))  // P 키를 눌렀을 때 기차가 있는 원 위치 확인
-        {
-            int n = GetCircle(); // 위치한 원 숫자 받기 함수
-            Debug.Log(n);  // 추출한 숫자 출력
-        }
         if (Input.GetKeyDown(KeyCode.Q))  // Q 버튼을 클릭하면 이미지 교체
         {
             SwapImages();
@@ -145,7 +132,11 @@ public class GameDirector : MonoBehaviour
         {
             DeleteAllEdges();
         }
-        if(Input.GetKeyDown(KeyCode.G) && !isTrainMoving && !is_dk )  // 최단거리까지 이동
+        if (Input.GetKeyDown(KeyCode.E))  // E 키를 누르면 랜덤 간선 생성
+        {
+            GenerateRandomEdges();
+        }
+        if (Input.GetKeyDown(KeyCode.R) && !isTrainMoving && !is_dk)  // 최단거리까지 이동
         {
             dk_can = true;
             int n = GetCircle(); // 위치한 원 숫자 받기 함수
@@ -155,9 +146,30 @@ public class GameDirector : MonoBehaviour
             TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
             Dk_Move();
         }
-        if (Input.GetKeyDown(KeyCode.E))  // W 키를 눌렀을 때 모든 간선 삭제
+        if (Input.GetKeyDown(KeyCode.T))  // T 다읻스트라 알고리즘 실행
         {
-            GenerateRandomEdges();
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            Shortest_path(g, n);
+        }
+        if (Input.GetKeyDown(KeyCode.Y))  // Y 키는 출발지에서 각 노드로의 최단 경로
+        {
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            TraceAllPaths(n);
+        }
+        if (Input.GetKeyDown(KeyCode.U))  // U 키를 눌렀을 때 도착지까지의 경로만 확인
+        {
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            TracePath(n, one_ui); // 출발지는 현재 위치, 도착지는 1번
+
+        }
+        if (Input.GetKeyDown(KeyCode.I))  // P 키를 눌렀을 때 기차가 있는 원 위치 확인
+        {
+            SwapLine();
+        }
+        if (Input.GetKeyDown(KeyCode.P))  // P 키를 눌렀을 때 기차가 있는 원 위치 확인
+        {
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            Debug.Log(n);  // 추출한 숫자 출력
         }
 
     }
@@ -205,6 +217,22 @@ public class GameDirector : MonoBehaviour
         uiImages[0].sprite = nodeSprites[one_ui];
         uiImages[1].sprite = nodeSprites[two_ui];
         uiImages[2].sprite = nodeSprites[three_ui];
+    }
+
+    void SetRandomLine()
+    {
+        line_one.text = Random.Range(w_s, w_e + 1).ToString();  // w_s 부터 w_e까지 랜덤 값 (w_e 포함)
+        line_two.text = Random.Range(w_s, w_e + 1).ToString();
+        line_three.text = Random.Range(w_s, w_e + 1).ToString();
+        next_line = int.Parse(line_one.text);
+    }
+
+    void SwapLine()
+    {
+        line_one.text = line_two.text;
+        line_two.text = line_three.text;
+        line_three.text = Random.Range(w_s, w_e + 1).ToString();
+        next_line = int.Parse(line_one.text);
     }
 
     void DeleteAllEdges()
@@ -458,7 +486,7 @@ public class GameDirector : MonoBehaviour
         }
     }
 
-    int GetCircle()
+    public int GetCircle()
     {
         closestCircle = GetClosestCircle(train.transform.position);  // closestCircle은 GameObject 타입
         string circleName = closestCircle.name;  // GameObject의 이름을 가져옴
@@ -553,7 +581,7 @@ public class GameDirector : MonoBehaviour
     }
 
 
-    GameObject GetClosestCircle(Vector3 position)
+    public GameObject GetClosestCircle(Vector3 position)
     {
         GameObject closestCircle = null;
         float closestDistance = float.MaxValue;
@@ -602,10 +630,14 @@ public class GameDirector : MonoBehaviour
                 else // 간선 연결한 두번째 노드 클릭시
                 {
                     Debug.Log(clickedCircle + " 추가 2"); // 2 원 확인
-                    CreateEdge(createSelectedCircle, clickedCircle); // 간선 추가 함수
-                    ChangeCircleColor(createSelectedCircle, originalColor); // 색 복원
 
-                    
+                    click_create = true;
+
+                    CreateEdge(createSelectedCircle, clickedCircle); // 간선 추가 함수
+
+                    click_create = false;   
+
+                    ChangeCircleColor(createSelectedCircle, originalColor); // 색 복원
 
                     createSelectedCircle = null;
                     create_check = 0;
@@ -694,6 +726,7 @@ public class GameDirector : MonoBehaviour
         {
             GameObject lineObject = Instantiate(linePrefab);
             LineRenderer lineRenderer = lineObject.GetComponent<LineRenderer>();
+            int weight;
 
             lineRenderer.SetPosition(0, start.transform.position);
             lineRenderer.SetPosition(1, end.transform.position);
@@ -704,7 +737,17 @@ public class GameDirector : MonoBehaviour
 
             edges.Add((first, second));
             createdLines.Add(lineObject);
-            int weight = Random.Range(w_s, w_e);
+
+            if(click_create)
+            {
+                weight = next_line;
+                SwapLine();
+            }
+            else
+            {
+                weight = Random.Range(w_s, w_e);
+            }
+
             edgeWeights[(first, second)] = weight;
             DisplayEdgeWeight(lineObject, weight);
 
