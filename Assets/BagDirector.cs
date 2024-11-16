@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using System.IO;
 using System;
 using static UnityEngine.Rendering.DebugUI;
+using System.Collections.Concurrent;
 
 
 public class BagDirector : MonoBehaviour
@@ -19,16 +20,26 @@ public class BagDirector : MonoBehaviour
     public GameObject[] node;
     public int bagCapacity = 13; // 게임 내 배낭 용량
     public int current_bag_count = 0;
-    public int current_score_count = 0;
+    public int current_bag_score = 0; //  현재 배낭에 있는 점수
 
     int[,] container = new int[100,100];
 
     List<int> mugaeList = new List<int>();  // kg 값들을 저장할 리스트 == 배열
     List<int> valueList = new List<int>();  // value 값들을 저장할 리스트 == 배열
 
+    //UI 관련
+    public TMP_Text bag_weight_ui;
+    public Image[] current_bag_what;
+    public TMP_Text score_ui;
+    int current_score = 0;
+
+
+
     void Start()
     {
         game_director = GetComponent<GameDirector>(); // 매우 중요!!!
+        Set_Bag_weight(current_bag_score);
+        score_ui.text = current_score.ToString();
     }
 
     // Update is called once per frame
@@ -43,15 +54,133 @@ public class BagDirector : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.S)) // S 키 현재 원에서 물건 리스트 배열에 담기
         {
-
             Check_Circle_Bag();
         }
         if (Input.GetKeyDown(KeyCode.D)) // D 키 입력시 동적 알고리즘 실행
         {
-
             Knampsack(container, mugaeList, valueList, current_bag_count);
         }
+        if (Input.GetKeyDown(KeyCode.F)) // D 키 입력시 동적 알고리즘 실행
+        {
+            SetBag_SetScore();
+        }
+   
+    }
+    public void SortAndUpdateBagUI_UP() // 오름 차순
+    {
 
+        List<int> sortedItems = new List<int>();
+
+        for (int i = 0; i < valueList.Count; i++)
+        {
+            sortedItems.Add(i);
+        }
+
+        //quick_sort(valueList, sortedItems, 0, valueList.Count - 1); // 내림 차순
+        sortedItems.Sort((a, b) => valueList[a].CompareTo(valueList[b]));  // 오름 차순으로 정렬
+
+
+        UpdateBagUI(sortedItems, mugaeList, valueList);
+    }
+
+    public void SortAndUpdateBagUI_DOWN() // 내림 차순
+    {
+
+        List<int> sortedItems = new List<int>();
+
+        for (int i = 0; i < valueList.Count; i++)
+        {
+            sortedItems.Add(i);
+        }
+
+        quick_sort(valueList, sortedItems, 0, valueList.Count - 1); // 내림 차순
+        //sortedItems.Sort((a, b) => valueList[b].CompareTo(valueList[a]));  //  오름 차순
+
+
+        UpdateBagUI(sortedItems, mugaeList, valueList);
+    }
+ 
+    void quick_sort(List<int> valueList, List<int> list, int left, int right)
+    {
+        if (left < right)
+        {
+            // Partition을 통해 pivot이 올바른 위치로 배치되도록 함
+            int q = Partition(valueList, list, left, right);
+
+            // 피벗 기준으로 분할된 부분들을 재귀적으로 정렬
+            quick_sort(valueList, list, left, q - 1);
+            quick_sort(valueList, list, q + 1, right);
+        }
+    }
+
+    int Partition(List<int> valueList, List<int> list, int left, int right)
+    {
+        int pivotIndex = left;  // 피벗 인덱스 (가장 왼쪽)
+        int pivotValue = valueList[list[left]];  // 피벗의 값
+        int low = left + 1;  // low는 left + 1에서 시작
+        int high = right;
+
+        while (true)
+        {
+            // low는 valueList[pivotValue]보다 작은 값 찾기
+            while (low <= right && valueList[list[low]] >= pivotValue)
+            {
+                low++;
+            }
+
+            // high는 valueList[pivotValue]보다 큰 값 찾기
+            while (high >= left + 1 && valueList[list[high]] < pivotValue)
+            {
+                high--;
+            }
+
+            // low가 high보다 작으면 두 값을 교환
+            if (low < high)
+            {
+                int temp = list[low];
+                list[low] = list[high];
+                list[high] = temp;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // 피벗을 올바른 위치로 이동
+        int tempPivot = list[left];
+        list[left] = list[high];
+        list[high] = tempPivot;
+
+        return high; // 피벗이 최종적으로 위치한 인덱스 반환
+    }
+
+
+    void SetBag_SetScore() // 가방에 있는 거 점수로 치환 및 가방 초기화
+    {
+        current_score += current_bag_score;
+        current_bag_score = 0;
+
+        Set_Bag_weight(current_bag_score);
+
+        mugaeList.Clear();
+        valueList.Clear(); // 가방 초기화
+        current_bag_count = 0;
+
+
+        score_ui.text = current_score.ToString();
+
+        for (int i = 0; i < current_bag_what.Length; i++)
+        {
+            current_bag_what[i].gameObject.SetActive(false); // 모든 슬롯 비활성화
+        }
+
+
+    }
+
+    void Set_Bag_weight(int score_temp)
+    {
+        bag_weight_ui.text = score_temp.ToString();
     }
 
     void Check_Circle_Bag()
@@ -73,14 +202,14 @@ public class BagDirector : MonoBehaviour
                     valueList.Add(bag.value);
 
                     Debug.Log($"Box - kg: {bag.kg}, value: {bag.value}");
+                    child.gameObject.SetActive(false);  // 박스를 비활성화
                 }
             }
         }
-
     }
 
 
-
+    // 동적 계획 알고리즘 사용!!!!!!!!!!!
     void Knampsack(int[,] container, List<int> mugaeList, List<int> valueList, int n) // n은 물건 갯수 노드에 접근시 생기는 추가 물건
     {
         for(int i = 0; i < n; i++)
@@ -136,6 +265,7 @@ public class BagDirector : MonoBehaviour
   
         // 선택된 물건들 출력
         Debug.Log("선택된 물건들:");
+        UpdateBagUI(selectedItems, mugaeList, valueList); // UI 업데이트 호출
         foreach (int item in selectedItems)
         {
             Debug.Log($"물건 {item} (무게: {mugaeList[item]}, 가치: {valueList[item]})");
@@ -146,7 +276,8 @@ public class BagDirector : MonoBehaviour
         Debug.Log($"배낭에 담긴 물건 갯수: {selectedItems.Count}");
         Debug.Log($"배낭에 담긴 물건들의 총 가치: {totalValue}");
         current_bag_count = selectedItems.Count;
-        current_score_count = totalValue;
+        current_bag_score = totalValue;
+        Set_Bag_weight(current_bag_score);
 
         mugaeList.Clear();
         valueList.Clear();
@@ -155,6 +286,59 @@ public class BagDirector : MonoBehaviour
 
         Debug.Log(mugaeList.Count);
 
+    }
+    private void UpdateBagUI(List<int> selectedItems, List<int> mugaeList, List<int> valueList)
+    {
+        // 모든 배낭 UI 슬롯 초기화
+        for (int i = 0; i < current_bag_what.Length; i++)
+        {
+            current_bag_what[i].gameObject.SetActive(false); // 모든 슬롯 비활성화
+        }
+
+        int bagSlotIndex = 0;
+        int temp = 0;
+
+        // 선택된 물건 정보를 UI에 업데이트
+        foreach (int item in selectedItems)
+        {
+            if (bagSlotIndex < current_bag_what.Length)
+            {
+                // 현재 슬롯 활성화
+                current_bag_what[bagSlotIndex].gameObject.SetActive(true);
+
+                if (mugaeList[item] == 1)
+                    temp = 0;
+                else if (mugaeList[item] == 3)
+                    temp = 1;
+                else if (mugaeList[item] == 5)
+                    temp = 2;
+                else
+                {
+                    Debug.LogWarning($"잘못된 무게값: {mugaeList[item]}");
+                    continue; // 잘못된 무게는 무시
+                }
+
+                current_bag_what[bagSlotIndex].sprite = bag_img[temp];
+
+                // 텍스트 업데이트 (가치 표시)
+                TextMeshProUGUI valueText = current_bag_what[bagSlotIndex].GetComponentInChildren<TextMeshProUGUI>();
+                if (valueText != null)
+                {
+                    valueText.text = valueList[item].ToString();
+                }
+                else
+                {
+                    Debug.LogWarning($"배낭 슬롯 {bagSlotIndex}에 텍스트 컴포넌트가 없습니다.");
+                }
+
+                bagSlotIndex++; // 다음 슬롯으로 이동
+            }
+            else
+            {
+                Debug.LogWarning("배낭 슬롯이 부족합니다. 추가적인 물건은 표시되지 않습니다.");
+                break;
+            }
+        }
     }
 
     void ActivateAndSetRandomSprites() // 각 정점별 무게 랜덤하게 생성

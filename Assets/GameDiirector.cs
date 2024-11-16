@@ -43,13 +43,15 @@ public class GameDirector : MonoBehaviour
     // 기본 베이스 코드-------------------------------------------------------------------
 
     // 알고리즘 코드------
+    GraphType g = new GraphType(9);// 노드 추가시!!
+    int node_num;
+
 
     int[] distance = new int[100]; // 시작점으로부터 최단 경로 거리
     bool[] found = new bool[100]; // 방문한 정점 표시
     public const int INF = 100000000;  // INF 값 정의
     int line_weight; // g 에 넣을 가중치 중간 저장용 변수
 
-    GraphType g = new GraphType(8);// 여기서 노드 갯수 변화는 가능
     int w_s = 1; //간선 가중치 최소
     int w_e = 20; // 간선 가중치 최대
 
@@ -81,6 +83,8 @@ public class GameDirector : MonoBehaviour
     {
         //g.weight[0, 2] = 8; // 값 변하는지 실험용
         Application.targetFrameRate = 60; // 60 프레임 고정
+
+        node_num = nodeSprites.Length; // 노드 갯수 하드 코딩 안하게
         g.PrintGraph(g); // 디버깅
         DistanceSet(g); // g 초기화
 
@@ -97,19 +101,10 @@ public class GameDirector : MonoBehaviour
             Debug.Log("train_start");
             CheckCurrentCircleConnections(); //스페이스바 누르면 기차가 무한히 움직임
         }
-
-        if (Input.GetKeyDown(KeyCode.H) && !isTrainMoving && !is_dk )
-        {
-            int n = GetCircle(); // 위치한 원 숫자 받기 함수
-            TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
-            Dk_Move();
-        }
-
         if( is_dk) // 프레임 마다 이동
         {
             Dk_Move(); 
         }
-
         if (isTrainMoving) // 프레임 마다 이동
         {
             MoveTrainToTarget(); 
@@ -123,6 +118,7 @@ public class GameDirector : MonoBehaviour
         {
             PrintDistance(g);
         }
+
 
         if (Input.GetKeyDown(KeyCode.Q))  // Q 버튼을 클릭하면 이미지 교체
         {
@@ -246,7 +242,7 @@ public class GameDirector : MonoBehaviour
                 DeleteEdge(circles[i], circles[j]);
             }
         }
-        g.SetGraph(8);
+        g.SetGraph(node_num);
     }
     void GenerateRandomEdges()
     {
@@ -444,6 +440,7 @@ public class GameDirector : MonoBehaviour
 
     void CheckCurrentCircleConnections()
     {
+        
         closestCircle = GetClosestCircle(train.transform.position);
 
         if (closestCircle != null)
@@ -498,31 +495,23 @@ public class GameDirector : MonoBehaviour
 
     void MoveTrainToTarget()
     {
-        float duration = 4f; // 이동할 시간 (초)
-        float timeElapsed = Time.time - trainMoveStartTime;
-        float speedMultiplier = 4f; // 이 값을 조정하여 이동 속도를 증가시킬 수 있습니다.
-
-        // 이동할 거리 (목표까지의 거리)
-        float distance = Vector3.Distance(train.transform.position, targetPosition);
 
         // 일정한 속도로 이동 (속도 = 거리 / 시간)
-        if (timeElapsed < duration)
-        {
-            // 이동할 거리 비율을 계산하여 일정 속도로 이동
-            float step = distance / duration * Time.deltaTime;
 
-            // 일정한 속도로 이동 (속도 증가 적용)
-            Vector3 newPosition = Vector3.MoveTowards(train.transform.position, targetPosition, step * speedMultiplier);
+        Vector3 targetPosition2D = new Vector3(targetCircle.transform.position.x,
+                                                   targetCircle.transform.position.y,
+                                                   -5f);
 
-            // z 값을 항상 -5로 고정
-            newPosition.z = -5f;
+        // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
+        Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
 
-            train.transform.position = newPosition;
-        }
-        else
+        train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.1f);
+
+
+        if (trainPosition2D == targetPosition2D )
         {
             // 지정한 시간이 지나면 순간이동
-            train.transform.position = new Vector3(targetPosition.x, targetPosition.y, -5f);
+
             isTrainMoving = false;  // 이동 완료 후 isTrainMoving을 false로 설정
             closestCircle = null;
             targetCircle = null;
@@ -537,6 +526,7 @@ public class GameDirector : MonoBehaviour
         yield return new WaitForSeconds(1f);
 
         // 1초 후에 기차가 다시 이동할 수 있도록 설정
+        Debug.Log('a');
         CheckCurrentCircleConnections();
         isTrainMoving = true;
     }
@@ -733,7 +723,7 @@ public class GameDirector : MonoBehaviour
 
             lineRenderer.startWidth = 0.1f;
             lineRenderer.endWidth = 0.1f;
-            lineRenderer.material.color = Color.black;
+            lineRenderer.material.color = Color.white;
 
             edges.Add((first, second));
             createdLines.Add(lineObject);
