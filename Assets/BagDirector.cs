@@ -33,7 +33,7 @@ public class BagDirector : MonoBehaviour
     public TMP_Text score_ui;
     int current_score = 0;
 
-
+    public TMP_FontAsset font; // 물건 가치 폰트
 
     void Start()
     {
@@ -376,8 +376,47 @@ public class BagDirector : MonoBehaviour
                     random_num = UnityEngine.Random.Range( 1, 20);// 물건 가치 정하기
                     bag.value = random_num;
 
+                    RemoveExistingValueText(child);
+
+                    CreateValueText(child, bag.value);
+
                 }
             }
         }
     }
+
+    void CreateValueText(Transform boxTransform, int value)
+    {
+        // 텍스트 오브젝트 생성
+        GameObject textObj = new GameObject("ValueText");
+        textObj.transform.SetParent(boxTransform); // 부모는 Box로 설정
+
+        // TextMeshPro 컴포넌트 추가
+        TextMeshPro textMeshPro = textObj.AddComponent<TextMeshPro>();
+        textMeshPro.text = value.ToString(); // 텍스트 내용을 가치 값으로 설정
+        textMeshPro.font = font; // 지정된 폰트 사용
+        textMeshPro.fontSize = 3; // 텍스트 크기
+        textMeshPro.color = Color.magenta; // 텍스트 색상
+
+        // 텍스트 정렬 설정 (가운데 정렬)
+        textMeshPro.alignment = TextAlignmentOptions.Center;
+
+        // RectTransform 조정
+        RectTransform rectTransform = textMeshPro.GetComponent<RectTransform>();
+        rectTransform.localPosition = new Vector3(0, 0.5f, 0); // 박스 중심에서 살짝 아래로 배치
+        rectTransform.localScale = Vector3.one; // 크기 비율 유지
+        rectTransform.sizeDelta = new Vector2(5, 1); // 텍스트 박스 크기 설정
+    }
+    void RemoveExistingValueText(Transform boxTransform)
+    {
+        // "ValueText"라는 이름을 가진 자식 오브젝트를 찾고 삭제
+        foreach (Transform child in boxTransform)
+        {
+            if (child.name == "ValueText")
+            {
+                Destroy(child.gameObject); // 텍스트 오브젝트 삭제
+            }
+        }
+    }
+
 }

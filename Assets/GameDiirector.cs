@@ -43,7 +43,7 @@ public class GameDirector : MonoBehaviour
     // 기본 베이스 코드-------------------------------------------------------------------
 
     // 알고리즘 코드------
-    GraphType g = new GraphType(9);// 노드 추가시!!
+    GraphType g = new GraphType(16);// 노드 추가시!!
     int node_num;
 
 
@@ -258,8 +258,8 @@ public class GameDirector : MonoBehaviour
             }
         }
 
-        // 정점 - 1개의 간선을 랜덤하게 선택하여 생성
-        int edgeCount = circles.Length - 1;
+        // 정점 - 10개의 간선을 랜덤하게 선택하여 생성
+        int edgeCount = circles.Length - 10;
         for (int k = 0; k < edgeCount; k++)
         {
             int randomIndex = Random.Range(0, possibleEdges.Count);
@@ -796,7 +796,7 @@ public class GameDirector : MonoBehaviour
 
         TextMeshPro textMesh = weightTextObject.AddComponent<TextMeshPro>();
         textMesh.text = weight.ToString();
-        textMesh.fontSize = 10f;
+        textMesh.fontSize = 8f;
         textMesh.color = Color.red;
         textMesh.alignment = TextAlignmentOptions.Center;
         textMesh.rectTransform.sizeDelta = new Vector2(2f, 1f);
