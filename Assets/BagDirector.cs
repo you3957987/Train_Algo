@@ -40,6 +40,7 @@ public class BagDirector : MonoBehaviour
         game_director = GetComponent<GameDirector>(); // 매우 중요!!!
         Set_Bag_weight(current_bag_score);
         score_ui.text = current_score.ToString();
+
     }
 
     // Update is called once per frame
@@ -58,13 +59,17 @@ public class BagDirector : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.D)) // D 키 입력시 동적 알고리즘 실행
         {
-            Knampsack(container, mugaeList, valueList, current_bag_count);
+            Loot_KanmpSack();
         }
         if (Input.GetKeyDown(KeyCode.F)) // D 키 입력시 동적 알고리즘 실행
         {
             SetBag_SetScore();
         }
    
+    }
+    public void Loot_KanmpSack()
+    {
+        Knampsack(container, mugaeList, valueList, current_bag_count);
     }
     public void SortAndUpdateBagUI_UP() // 오름 차순
     {
@@ -156,7 +161,7 @@ public class BagDirector : MonoBehaviour
     }
 
 
-    void SetBag_SetScore() // 가방에 있는 거 점수로 치환 및 가방 초기화
+    public void SetBag_SetScore() // 가방에 있는 거 점수로 치환 및 가방 초기화
     {
         current_score += current_bag_score;
         current_bag_score = 0;
@@ -183,7 +188,7 @@ public class BagDirector : MonoBehaviour
         bag_weight_ui.text = score_temp.ToString();
     }
 
-    void Check_Circle_Bag()
+    public void Check_Circle_Bag()
     {
         int n = game_director.GetCircle();  // 현재 선택된 Circle의 인덱스를 가져옴
         Debug.Log("물건 담을 원 " + n);
@@ -341,7 +346,7 @@ public class BagDirector : MonoBehaviour
         }
     }
 
-    void ActivateAndSetRandomSprites() // 각 정점별 무게 랜덤하게 생성
+    public void ActivateAndSetRandomSprites() // 각 정점별 무게 랜덤하게 생성
     {
         foreach (GameObject circle in node)
         {
@@ -403,7 +408,7 @@ public class BagDirector : MonoBehaviour
 
         // RectTransform 조정
         RectTransform rectTransform = textMeshPro.GetComponent<RectTransform>();
-        rectTransform.localPosition = new Vector3(0, 0.5f, 0); // 박스 중심에서 살짝 아래로 배치
+        rectTransform.localPosition = new Vector3(0, -0.5f, 0); // 2째 만큼 이동
         rectTransform.localScale = Vector3.one; // 크기 비율 유지
         rectTransform.sizeDelta = new Vector2(5, 1); // 텍스트 박스 크기 설정
     }

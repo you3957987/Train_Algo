@@ -43,7 +43,7 @@ public class GameDirector : MonoBehaviour
     // 기본 베이스 코드-------------------------------------------------------------------
 
     // 알고리즘 코드------
-    GraphType g = new GraphType(16);// 노드 추가시!!
+    GraphType g = new GraphType(8);// 노드 추가시!!
     int node_num;
 
 
@@ -65,6 +65,10 @@ public class GameDirector : MonoBehaviour
 
     bool dk_can; // 다익스트라 알고리즘이 시행 불가능할 경우, 최단 경로로 이동하는 함수 실행 불가능하게
 
+    float vibrationAmount = 0.2f;
+    float vibrationSpeed = 20f;    // 진동 속도
+    Vector3 startPosition;
+    bool vib = false;
 
     // UI 관련 코드
     public Image[] uiImages; // UI에 있는 Image 컴포넌트 3개를 드래그하여 연결
@@ -79,19 +83,30 @@ public class GameDirector : MonoBehaviour
     public int next_line; // 다음 간선 생성시 가중치
     bool click_create; // 클릭으로 간선 선택시
 
+
+    // 게임 시작시 관련
+
+    public Image start_img;
+    public Sprite[] start_icon;
+    TimerDirector timerDirector;
+    BagDirector bagDirector;
+
     void Start()
     {
         //g.weight[0, 2] = 8; // 값 변하는지 실험용
         Application.targetFrameRate = 60; // 60 프레임 고정
+        timerDirector = GetComponent<TimerDirector>();
+        bagDirector = GetComponent<BagDirector>();
 
         node_num = nodeSprites.Length; // 노드 갯수 하드 코딩 안하게
         g.PrintGraph(g); // 디버깅
         DistanceSet(g); // g 초기화
 
-        SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
-        SetRandomLine();
-    }
+        StartCoroutine(ShowStartImages());
 
+        //SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
+        //SetRandomLine(); // 다음 간선 유아이 생성
+    }
     void Update()
     {
         DetectMouseClick();
@@ -138,7 +153,16 @@ public class GameDirector : MonoBehaviour
             int n = GetCircle(); // 위치한 원 숫자 받기 함수
             Shortest_path(g, n);
             if (dk_can == false)
+            {
+                if(vib == false)
+                {
+                    startPosition = train.transform.position; // 원래 위치 저장
+                    StartCoroutine(VibrateSpider());
+                }
                 return; // 다익스트라 실행 안되는 경우 멈추기
+            }
+
+
             TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
             Dk_Move();
         }
@@ -170,8 +194,49 @@ public class GameDirector : MonoBehaviour
 
     }
 
+    IEnumerator ShowStartImages() // 게임 시작!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    {
+
+        foreach (Sprite icon in start_icon)
+        {
+            start_img.sprite = icon;  // 현재 스프라이트 설정
+            yield return new WaitForSeconds(1f); // 1초 대기
+
+        }
+
+        start_img.enabled = false; // 이미지 숨기기
+       
+        SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
+        SetRandomLine(); // 다음 간선 유아이 생성
+        timerDirector.game_start = true;
+        bagDirector.ActivateAndSetRandomSprites();
+        GenerateRandomEdges();
+        GenerateRandomEdges();
+
+    }
+
+    IEnumerator VibrateSpider()
+    {
+        float elapsedTime = 0f;
+        vib = true;
+
+        while (elapsedTime < 0.6f) // 진동을 1초 동안만 진행
+        {
+            // Sin 함수로 상하 진동
+            float offset = Mathf.Sin(elapsedTime * vibrationSpeed) * vibrationAmount;
+            train.transform.position = startPosition + new Vector3(0, offset, 0); // Y축으로 진동
+
+            elapsedTime += Time.deltaTime; // 시간 증가
+            yield return null;
+        }
+
+        train.transform.position = startPosition; // 진동 후 원위치로
+        vib = false;
+    }
+
     void SetRandomImages(int n)
     {
+
         // 0부터 7까지의 노드 중 랜덤하게 3개 선택, n은 제외
         List<int> randomNodes = new List<int>();
         while (randomNodes.Count < 3)
@@ -259,7 +324,7 @@ public class GameDirector : MonoBehaviour
         }
 
         // 정점 - 10개의 간선을 랜덤하게 선택하여 생성
-        int edgeCount = circles.Length - 10;
+        int edgeCount = circles.Length/2;
         for (int k = 0; k < edgeCount; k++)
         {
             int randomIndex = Random.Range(0, possibleEdges.Count);
@@ -554,6 +619,8 @@ public class GameDirector : MonoBehaviour
                 //Debug.Log(currentPathIndex);
                 // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
                 currentPathIndex++;
+                bagDirector.Check_Circle_Bag();
+                bagDirector.Loot_KanmpSack();
 
                 // 경로 끝까지 갔으면 이동을 종료
                 if (currentPathIndex >= path_num)
@@ -565,6 +632,11 @@ public class GameDirector : MonoBehaviour
                     targetCircle = null;
                     currentPathIndex = 1;
                     SwapImages();
+                    bagDirector.ActivateAndSetRandomSprites();
+                    bagDirector.SetBag_SetScore();
+                    DeleteAllEdges();
+                    GenerateRandomEdges();
+                    GenerateRandomEdges();
                 }
             }
         }
@@ -699,7 +771,7 @@ public class GameDirector : MonoBehaviour
     {
         foreach (GameObject circle in circles)
         {
-            if (Vector3.Distance(circle.transform.position, mousePosition) < 0.5f)
+            if (Vector3.Distance(circle.transform.position, mousePosition) < 0.8f)
             {
                 return circle;
             }
@@ -724,6 +796,8 @@ public class GameDirector : MonoBehaviour
             lineRenderer.startWidth = 0.1f;
             lineRenderer.endWidth = 0.1f;
             lineRenderer.material.color = Color.white;
+            lineRenderer.sortingLayerName = "Default";  // 사용하려는 레이어 이름 설정
+            lineRenderer.sortingOrder = 1; // 숫자가 높을수록 앞으로 렌더링
 
             edges.Add((first, second));
             createdLines.Add(lineObject);
@@ -790,7 +864,7 @@ public class GameDirector : MonoBehaviour
         weightTextObject.transform.SetParent(lineObject.transform);
 
         Vector3 midPoint = (lineObject.GetComponent<LineRenderer>().GetPosition(0) + lineObject.GetComponent<LineRenderer>().GetPosition(1)) / 2;
-        midPoint.z = -9f;
+        midPoint.z = -2f;
 
         weightTextObject.transform.position = midPoint;
 
@@ -800,6 +874,14 @@ public class GameDirector : MonoBehaviour
         textMesh.color = Color.red;
         textMesh.alignment = TextAlignmentOptions.Center;
         textMesh.rectTransform.sizeDelta = new Vector2(2f, 1f);
+
+        Renderer renderer = weightTextObject.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.sortingLayerName = "Default";  // 설정하려는 Sorting Layer 이름
+            renderer.sortingOrder = 2;  // Order in Layer 설정 (숫자가 클수록 앞으로 렌더링됨)
+        }
+
     }
 
     bool IsTrainCurrentlyOnCircle(GameObject circle)

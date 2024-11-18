@@ -6,9 +6,9 @@ public class TimerDirector : MonoBehaviour
 {
 
     public TMP_Text timer_ui;
-    float timer = 30.00f;
+    float timer = 60.00f;
 
-    bool game_start = false;
+    public bool game_start = false;
 
     void Start()
     {
