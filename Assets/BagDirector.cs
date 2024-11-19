@@ -401,14 +401,14 @@ public class BagDirector : MonoBehaviour
         textMeshPro.text = value.ToString(); // 텍스트 내용을 가치 값으로 설정
         textMeshPro.font = font; // 지정된 폰트 사용
         textMeshPro.fontSize = 3; // 텍스트 크기
-        textMeshPro.color = Color.magenta; // 텍스트 색상
+        textMeshPro.color = Color.black; // 텍스트 색상
 
         // 텍스트 정렬 설정 (가운데 정렬)
         textMeshPro.alignment = TextAlignmentOptions.Center;
 
         // RectTransform 조정
         RectTransform rectTransform = textMeshPro.GetComponent<RectTransform>();
-        rectTransform.localPosition = new Vector3(0, -0.5f, 0); // 2째 만큼 이동
+        rectTransform.localPosition = new Vector3(0, -0.1f, 0); // 2째 만큼 이동
         rectTransform.localScale = Vector3.one; // 크기 비율 유지
         rectTransform.sizeDelta = new Vector2(5, 1); // 텍스트 박스 크기 설정
     }
