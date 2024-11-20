@@ -43,7 +43,7 @@ public class GameDirector : MonoBehaviour
     // 기본 베이스 코드-------------------------------------------------------------------
 
     // 알고리즘 코드------
-    GraphType g = new GraphType(8);// 노드 추가시!!
+    GraphType g = new GraphType(10);// 노드 추가시!!
     int node_num;
 
 
@@ -73,8 +73,15 @@ public class GameDirector : MonoBehaviour
     // UI 관련 코드
     public Image[] uiImages; // UI에 있는 Image 컴포넌트 3개를 드래그하여 연결
     public Sprite[] nodeSprites; // 사용할 이미지 스프라이트 배열 (0부터 7까지 노드 이미지)
-
     public int one_ui, two_ui, three_ui; // 1 번인 다음 목적지. 2,3, 번은 대기
+    public TMP_Text max_line; // 이동 가능한 간선 최대치 UI
+
+    public int current_max_line_weight; // 현재 이동 가능한 간선 가중치
+    public int max_line_weight = 100; // 경유지 통과시 초기화 되는 최대 간선 가중치
+
+    public Button link_button;
+    public Sprite[] link_button_img;
+    public int link_selector = 0;
 
     // 배낭 문제 알고리즘 코드
     BagDirector BagDirector;
@@ -101,6 +108,10 @@ public class GameDirector : MonoBehaviour
         node_num = nodeSprites.Length; // 노드 갯수 하드 코딩 안하게
         g.PrintGraph(g); // 디버깅
         DistanceSet(g); // g 초기화
+
+
+        current_max_line_weight = max_line_weight;
+        max_line.text = current_max_line_weight.ToString(); // 이동 가능한 최대 간선 가중치 수
 
         StartCoroutine(ShowStartImages());
 
@@ -194,6 +205,51 @@ public class GameDirector : MonoBehaviour
 
     }
 
+    public void Press_Link_Button()
+    {
+        SpriteState spritestate = link_button.spriteState;
+
+        if (link_selector == 0) // 링크 상태에서
+        {
+
+            link_selector = 1;
+            link_button.image.sprite = link_button_img[2];
+            spritestate.pressedSprite = link_button_img[3];
+
+        }
+        else // 언링크 상태에서
+        {
+            link_selector = 0;
+            link_button.image.sprite = link_button_img[0];
+            spritestate.pressedSprite = link_button_img[1];
+        }
+
+        link_button.spriteState = spritestate; // 변경된 SpriteState 버튼에 다시 설정
+    }
+
+    public void Press_Run_Button()
+    {
+        if (!isTrainMoving && !is_dk && timerDirector.game_start)  // 최단거리까지 이동. 게임 사직시 버튼 작동
+        {
+            dk_can = true;
+            int n = GetCircle(); // 위치한 원 숫자 받기 함수
+            Shortest_path(g, n);
+            if (dk_can == false)
+            {
+                if (vib == false)
+                {
+                    startPosition = train.transform.position; // 원래 위치 저장
+                    StartCoroutine(VibrateSpider());
+                }
+                return; // 다익스트라 실행 안되는 경우 멈추기
+            }
+
+
+            TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
+            Dk_Move();
+        }
+    }
+
     IEnumerator ShowStartImages() // 게임 시작!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     {
 
@@ -212,7 +268,6 @@ public class GameDirector : MonoBehaviour
         bagDirector.ActivateAndSetRandomSprites();
         GenerateRandomEdges();
         GenerateRandomEdges();
-
     }
 
     IEnumerator VibrateSpider()
@@ -598,6 +653,8 @@ public class GameDirector : MonoBehaviour
 
     void Dk_Move()
     {
+        int edgeWeight = 0;
+        int toNode, fromNode = 0;
 
         is_dk = true;
         // 경로가 남아 있을 때
@@ -612,7 +669,15 @@ public class GameDirector : MonoBehaviour
             Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
 
             train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.1f);
-            
+
+            // 앞으로 이동할 간선의 가중치 디버깅 출력
+            if (currentPathIndex > 0)
+            {
+                fromNode = dk_path[currentPathIndex - 1]; // 출발 노드
+                toNode = dk_path[currentPathIndex];       // 도착 노드
+                edgeWeight = g.weight[fromNode, toNode];  // 간선의 가중치
+            }
+
             // 목표 지점에 도달했는지 확인 (x, y 기준으로만 거리 확인)
             if (trainPosition2D == targetPosition2D )  // 목표 위치에 충분히 가까워졌을 때
             {
@@ -621,6 +686,13 @@ public class GameDirector : MonoBehaviour
                 currentPathIndex++;
                 bagDirector.Check_Circle_Bag();
                 bagDirector.Loot_KanmpSack();
+
+                int n = GetCircle();  // 현재 선택된 Circle의 인덱스를 가져옴
+                if ( bagDirector.mid_node_one != n && bagDirector.mid_node_two != n ) // 경유지 통과 아닌 경우에만 감소
+                {
+                    current_max_line_weight -= edgeWeight;
+                    max_line.text = current_max_line_weight.ToString();
+                }
 
                 // 경로 끝까지 갔으면 이동을 종료
                 if (currentPathIndex >= path_num)
@@ -662,7 +734,7 @@ public class GameDirector : MonoBehaviour
 
     void DetectMouseClick()
     {
-        if (Input.GetMouseButtonDown(0) && delete_check != 1)
+        if (Input.GetMouseButtonDown(0) && delete_check != 1 && link_selector == 0) // 링크 셀렉터가 0인 상태
         {
             Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePosition.z = 0;
@@ -706,7 +778,7 @@ public class GameDirector : MonoBehaviour
                 }
             }
         }
-        else if (Input.GetMouseButtonDown(1) && create_check != 1)
+        else if (Input.GetMouseButtonDown(0) && create_check != 1 && link_selector == 1)
         {
             Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePosition.z = 0;

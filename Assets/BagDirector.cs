@@ -34,6 +34,7 @@ public class BagDirector : MonoBehaviour
     int current_score = 0;
 
     public TMP_FontAsset font; // 물건 가치 폰트
+    public int mid_node_one, mid_node_two; // 중간 경우지 노드의 경우 물건 담기 x
 
     void Start()
     {
@@ -192,6 +193,14 @@ public class BagDirector : MonoBehaviour
     {
         int n = game_director.GetCircle();  // 현재 선택된 Circle의 인덱스를 가져옴
         Debug.Log("물건 담을 원 " + n);
+
+        if( n == mid_node_one || n == mid_node_two) 
+        {
+            game_director.current_max_line_weight = game_director.max_line_weight;
+            game_director.max_line.text = game_director.current_max_line_weight.ToString(); // 경유지 통과시 간선 초기화
+
+            return; 
+        }; // 물건 없는 경유지 노드의 경우 물건 담기 x
 
         current_bag_count += node[n].transform.childCount; // 현재 배낭 물건 수 증가
 
