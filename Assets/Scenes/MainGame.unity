@@ -952,7 +952,7 @@ GameObject:
   - component: {fileID: 188649723}
   - component: {fileID: 188649722}
   m_Layer: 5
-  m_Name: Image
+  m_Name: Link_light_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -974,8 +974,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -56.6, y: 162.9}
-  m_SizeDelta: {x: 72, y: 72}
+  m_AnchoredPosition: {x: -57, y: 165}
+  m_SizeDelta: {x: 63, y: 63}
   m_Pivot: {x: 1, y: 0}
 --- !u!114 &188649722
 MonoBehaviour:
@@ -1894,7 +1894,7 @@ GameObject:
   - component: {fileID: 600585494}
   - component: {fileID: 600585493}
   m_Layer: 5
-  m_Name: Image (1)
+  m_Name: Link_light_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1916,8 +1916,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -56.60005, y: 96.9}
-  m_SizeDelta: {x: 72, y: 72}
+  m_AnchoredPosition: {x: -57, y: 100}
+  m_SizeDelta: {x: 63, y: 63}
   m_Pivot: {x: 1, y: 0}
 --- !u!114 &600585493
 MonoBehaviour:
@@ -1939,7 +1939,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d20f8167be13a6c4ea1f2f420b08ee54, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e3712c26355113743a6878222524e8cf, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -3001,6 +3001,14 @@ MonoBehaviour:
   - {fileID: -2754300597361112677, guid: eb530ead472704f4e804908124af7f73, type: 3}
   - {fileID: -3963306067649404611, guid: 3faeb3fdab802b543acaeae7a7adf44c, type: 3}
   link_selector: 0
+  line_light:
+  - {fileID: 188649722}
+  - {fileID: 600585493}
+  - {fileID: 1405876995}
+  line_ight_img:
+  - {fileID: 21300000, guid: e3712c26355113743a6878222524e8cf, type: 3}
+  - {fileID: 21300000, guid: d20f8167be13a6c4ea1f2f420b08ee54, type: 3}
+  chance_line_delete: 3
   line_one: {fileID: 1799998227}
   line_two: {fileID: 1340918336}
   line_three: {fileID: 1339997469}
@@ -4265,7 +4273,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 240, y: 0}
+  m_AnchoredPosition: {x: 216, y: 0}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1339997469
@@ -4401,7 +4409,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 120, y: 0}
+  m_AnchoredPosition: {x: 96.00003, y: 0}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1340918336
@@ -4801,7 +4809,7 @@ GameObject:
   - component: {fileID: 1405876996}
   - component: {fileID: 1405876995}
   m_Layer: 5
-  m_Name: Image (2)
+  m_Name: Link_light_3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4823,8 +4831,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -56.60005, y: 31.7}
-  m_SizeDelta: {x: 72, y: 72}
+  m_AnchoredPosition: {x: -57, y: 35}
+  m_SizeDelta: {x: 63, y: 63}
   m_Pivot: {x: 1, y: 0}
 --- !u!114 &1405876995
 MonoBehaviour:
@@ -4846,7 +4854,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: d20f8167be13a6c4ea1f2f420b08ee54, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e3712c26355113743a6878222524e8cf, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -6183,7 +6191,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -24, y: 0}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1799998227

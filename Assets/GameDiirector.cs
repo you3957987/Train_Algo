@@ -83,6 +83,10 @@ public class GameDirector : MonoBehaviour
     public Sprite[] link_button_img;
     public int link_selector = 0;
 
+    public Image[] line_light;
+    public Sprite[] line_ight_img;
+    public int chance_line_delete = 3;
+
     // 배낭 문제 알고리즘 코드
     BagDirector BagDirector;
 
@@ -112,6 +116,8 @@ public class GameDirector : MonoBehaviour
 
         current_max_line_weight = max_line_weight;
         max_line.text = current_max_line_weight.ToString(); // 이동 가능한 최대 간선 가중치 수
+
+        Set_line_light(chance_line_delete); // 디폴트 값은 3
 
         StartCoroutine(ShowStartImages());
 
@@ -201,6 +207,22 @@ public class GameDirector : MonoBehaviour
         {
             int n = GetCircle(); // 위치한 원 숫자 받기 함수
             Debug.Log(n);  // 추출한 숫자 출력
+        }
+
+    }
+
+    void Set_line_light( int n ) // 받은 숫자 만큼만 불빛 활성화 n = 3, 2, 1, 0 만 들어옴
+    {
+        for(int i = 0; i < 3; i++) // 불은 총 3개. 0, 1, 2
+        {
+            if( i < n )
+            {
+                line_light[i].sprite = line_ight_img[0];  // 불좀 켜줄래?
+            }
+            else
+            {
+                line_light[i].sprite = line_ight_img[1];  // 불좀 꺼줄래?
+            }
         }
 
     }
@@ -709,6 +731,8 @@ public class GameDirector : MonoBehaviour
                     DeleteAllEdges();
                     GenerateRandomEdges();
                     GenerateRandomEdges();
+                    chance_line_delete = 3;
+                    Set_line_light(chance_line_delete);
                 }
             }
         }
@@ -778,7 +802,7 @@ public class GameDirector : MonoBehaviour
                 }
             }
         }
-        else if (Input.GetMouseButtonDown(0) && create_check != 1 && link_selector == 1)
+        else if (Input.GetMouseButtonDown(0) && create_check != 1 && link_selector == 1 && chance_line_delete != 0)// 마우스 왼클릭 + 이전에 선 생성중 아님 + 링크 버튼이 언링크 상태 + 삭제 기화 0 x이면
         {
             Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePosition.z = 0;
@@ -818,6 +842,7 @@ public class GameDirector : MonoBehaviour
                     ChangeCircleColor(deleteSelectedCircle, originalColor);
                     deleteSelectedCircle = null;
                     delete_check = 0;
+                    Set_line_light(--chance_line_delete); // 선 삭제 기회 1 감소후 UI 업데이트
                 }
             }
         }
