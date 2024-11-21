@@ -48,7 +48,7 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 0
+  spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 20
@@ -103,10 +103,10 @@ TextureImporter:
       name: Apple_1_0
       rect:
         serializedVersion: 2
-        x: 0
-        y: 0
-        width: 19
-        height: 22
+        x: 1
+        y: 1
+        width: 17
+        height: 20
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -125,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: e02887f90cf2cf14f90676b744681f66
     internalID: 0
     vertices: []
     indices: 

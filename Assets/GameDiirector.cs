@@ -331,8 +331,8 @@ public class GameDirector : MonoBehaviour
 
         // 변경된 이미지 값으로 UI 업데이트
         uiImages[0].sprite = nodeSprites[one_ui];
-        uiImages[1].sprite = nodeSprites[two_ui];
-        uiImages[2].sprite = nodeSprites[three_ui];
+        //uiImages[1].sprite = nodeSprites[two_ui];
+        //uiImages[2].sprite = nodeSprites[three_ui]; // 이거 가는 노드는 하나만 보이게
     }
 
     void SetRandomLine()
