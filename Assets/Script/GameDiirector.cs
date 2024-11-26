@@ -103,6 +103,15 @@ public class GameDirector : MonoBehaviour
     TimerDirector timerDirector;
     BagDirector bagDirector;
 
+    //사운드 관련
+    public MainBackSound main_sound;
+    public AudioSource node_pass;
+    public AudioSource basket_pass;
+    public AudioSource line_error;
+    public AudioSource line_set;
+    public AudioSource node_select;
+    public AudioSource run_correct;
+
     void Start()
     {
         //g.weight[0, 2] = 8; // 값 변하는지 실험용
@@ -119,7 +128,7 @@ public class GameDirector : MonoBehaviour
         max_line.text = current_max_line_weight.ToString(); // 이동 가능한 최대 간선 가중치 수
 
         Set_line_light(chance_line_delete); // 디폴트 값은 3
-
+        main_sound.Play_main_backsound();
         StartCoroutine(ShowStartImages());
 
         //SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
@@ -269,10 +278,11 @@ public class GameDirector : MonoBehaviour
                     startPosition = train.transform.position; // 원래 위치 저장
                     StartCoroutine(VibrateSpider());
                 }
+                line_error.Play();
                 return; // 다익스트라 실행 안되는 경우 멈추기
             }
 
-
+            run_correct.Play();
             TracePath(n, one_ui); // 출발지는 0, 도착지는 1번 
             Dk_Move();
         }
@@ -696,7 +706,7 @@ public class GameDirector : MonoBehaviour
             // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
             Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
 
-            train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.1f);
+            train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.2f);// 기차 이동 속도
 
             // 앞으로 이동할 간선의 가중치 디버깅 출력
             if (currentPathIndex > 0)
@@ -718,11 +728,13 @@ public class GameDirector : MonoBehaviour
                 int n = GetCircle();  // 현재 선택된 Circle의 인덱스를 가져옴
                 if ( bagDirector.mid_node_one != n && bagDirector.mid_node_two != n ) // 경유지 통과 아닌 경우
                 {
+                    node_pass.Play();
                     current_max_line_weight -= edgeWeight;
                     max_line.text = current_max_line_weight.ToString();
                 }
                 else// 경유지 인 경우
                 {
+                    basket_pass.Play();
                     bagDirector.SetBag_SetScore(); // 과일 점수화
                 }
 
@@ -767,19 +779,22 @@ public class GameDirector : MonoBehaviour
 
     void DetectMouseClick()
     {
+        if (is_dk) return; // 기차 이동중이면 그냥 클릭 안되게
+
         if (Input.GetMouseButtonDown(0) && delete_check != 1 && link_selector == 0) // 링크 셀렉터가 0인 상태
         {
             Vector3 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mousePosition.z = 0;
 
             GameObject clickedCircle = GetClickedCircle(mousePosition);
-
+        
             if (clickedCircle != null)
             {
                 int clickedIndex = System.Array.IndexOf(circles, clickedCircle);
 
                 if (createSelectedCircle == clickedCircle)// 자기 자신노드에서 자기 자신으로 간선 추가 방지
                 {
+                    node_select.Play();
                     create_check = 0;
                     ChangeCircleColor(createSelectedCircle, originalColor);
                     createSelectedCircle = null;
@@ -788,6 +803,8 @@ public class GameDirector : MonoBehaviour
 
                 if (createSelectedCircle == null) // 첫번째 노드 클릭
                 {
+
+                    node_select.Play();
                     Debug.Log(clickedCircle + " 추가 1"); // 1 원 확인
                     createSelectedCircle = clickedCircle;
                     originalColor = clickedCircle.GetComponent<SpriteRenderer>().color;
@@ -805,6 +822,7 @@ public class GameDirector : MonoBehaviour
                     click_create = false;   
 
                     ChangeCircleColor(createSelectedCircle, originalColor); // 색 복원
+                    line_set.Play();
 
                     createSelectedCircle = null;
                     create_check = 0;
@@ -824,6 +842,7 @@ public class GameDirector : MonoBehaviour
 
                 if (deleteSelectedCircle == null)
                 {
+                    node_select.Play();
                     deleteSelectedCircle = clickedCircle;
                     originalColor = clickedCircle.GetComponent<SpriteRenderer>().color;
                     ChangeCircleColor(clickedCircle, Color.red);
@@ -835,6 +854,7 @@ public class GameDirector : MonoBehaviour
                     // 간선이 기차의 이동 경로에 포함되면 삭제할 수 없게 막음
                     if (IsTrainOnEdge(deleteSelectedCircle, clickedCircle))
                     {
+                        node_select.Play();
                         Debug.Log("기차가 이 간선을 이동 중이므로 삭제할 수 없습니다.");
                         ChangeCircleColor(deleteSelectedCircle, originalColor);
                         deleteSelectedCircle = null;
@@ -852,8 +872,9 @@ public class GameDirector : MonoBehaviour
                     ChangeCircleColor(deleteSelectedCircle, originalColor);
                     deleteSelectedCircle = null;
                     delete_check = 0;
+                    line_set.Play();
 
-                    if(check_delete_line)
+                    if (check_delete_line)
                     {
                         Set_line_light(--chance_line_delete); // 선 삭제 기회 1 감소후 UI 업데이트
                         check_delete_line = true;

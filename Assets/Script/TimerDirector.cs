@@ -6,13 +6,16 @@ public class TimerDirector : MonoBehaviour
 {
 
     public TMP_Text timer_ui;
-    float timer = 10.00f;
+    float timer = 5.00f;
 
     public bool game_start = false;
     public GameDirector gameDirector;
     public GameObject game_end_ui;
     public bool game_end = false;
 
+    //사운드 관련
+    public MainBackSound main_back;
+    public AudioSource game_over;
 
     void Start()
     {
@@ -30,7 +33,11 @@ public class TimerDirector : MonoBehaviour
         if (timer > 0 && game_start)
         {
             timer -= Time.deltaTime; // 타이머 감소
-            if (timer < 0) timer = 0; // 타이머가 0 이하로 내려가지 않도록 제한
+            if (timer < 0)
+            {
+                game_over.Play();
+                timer = 0; // 타이머가 0 이하로 내려가지 않도록 제한
+            }
             UpdateTimerUI();
         }
         
@@ -38,6 +45,8 @@ public class TimerDirector : MonoBehaviour
         {
             game_end_ui.gameObject.SetActive(true);
             Debug.Log("Game End");
+            
+            main_back.Off_main_backsound();
             game_end = true;
         }
 
