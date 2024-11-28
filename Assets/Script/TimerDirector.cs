@@ -12,6 +12,7 @@ public class TimerDirector : MonoBehaviour
     public GameDirector gameDirector;
     public GameObject game_end_ui;
     public bool game_end = false;
+    int a = 0;
 
     //사운드 관련
     public MainBackSound main_back;
@@ -44,10 +45,14 @@ public class TimerDirector : MonoBehaviour
         if( timer == 0 || gameDirector.current_max_line_weight <= 0)
         {
             game_end_ui.gameObject.SetActive(true);
-            Debug.Log("Game End");
-            
             main_back.Off_main_backsound();
             game_end = true;
+        }
+
+        if(game_end && a == 0)
+        {
+            game_over.Play();
+            a = 1;
         }
 
     }
