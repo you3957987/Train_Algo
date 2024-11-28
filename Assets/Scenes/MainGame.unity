@@ -3453,6 +3453,8 @@ MonoBehaviour:
   create_check: 0
   delete_check: 0
   font: {fileID: 11400000, guid: de0cdf32245bb24469264f3685e086b7, type: 2}
+  w_s: 5
+  w_e: 20
   is_dk: 0
   uiImages:
   - {fileID: 2131061363}
@@ -3471,8 +3473,8 @@ MonoBehaviour:
   two_ui: 0
   three_ui: 0
   max_line: {fileID: 1960768380}
-  current_max_line_weight: 50
-  max_line_weight: 50
+  current_max_line_weight: 30
+  max_line_weight: 30
   link_button: {fileID: 1652141070}
   link_button_img:
   - {fileID: 21300000, guid: 50f91d28eed93bf4f96c111d52e61f79, type: 3}
@@ -3561,6 +3563,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timer_ui: {fileID: 1524205257}
+  timer: 60
   game_start: 0
   gameDirector: {fileID: 844021143}
   game_end_ui: {fileID: 861047561}

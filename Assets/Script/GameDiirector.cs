@@ -52,8 +52,8 @@ public class GameDirector : MonoBehaviour
     public const int INF = 100000000;  // INF 값 정의
     int line_weight; // g 에 넣을 가중치 중간 저장용 변수
 
-    int w_s = 1; //간선 가중치 최소
-    int w_e = 20; // 간선 가중치 최대
+    public int w_s = 1; //간선 가중치 최소
+    public int w_e = 20; // 간선 가중치 최대
 
     int[] saveRoute; // 경로 추적용
     int[] vertex; // 노드 저장

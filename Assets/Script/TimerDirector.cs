@@ -6,7 +6,7 @@ public class TimerDirector : MonoBehaviour
 {
 
     public TMP_Text timer_ui;
-    float timer = 5.00f;
+    public float timer;
 
     public bool game_start = false;
     public GameDirector gameDirector;
@@ -30,7 +30,7 @@ public class TimerDirector : MonoBehaviour
             game_start = true;
         }
 
-        if (timer > 0 && game_start)
+        if (timer > 0 && game_start && gameDirector.current_max_line_weight >= 0)
         {
             timer -= Time.deltaTime; // 타이머 감소
             if (timer < 0)
