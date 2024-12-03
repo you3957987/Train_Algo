@@ -2175,6 +2175,8 @@ GameObject:
   - component: {fileID: 519420031}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
+  - component: {fileID: 519420033}
+  - component: {fileID: 519420034}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -2300,6 +2302,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &519420033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 684cae430ec04ac43bce840fc81e336c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &519420034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 684cae430ec04ac43bce840fc81e336c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &577401461 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1026074820984782400, guid: 18faf1d35db0614478ddd67b50159fe6, type: 3}
@@ -3454,7 +3480,7 @@ MonoBehaviour:
   delete_check: 0
   font: {fileID: 11400000, guid: de0cdf32245bb24469264f3685e086b7, type: 2}
   w_s: 5
-  w_e: 20
+  w_e: 15
   is_dk: 0
   uiImages:
   - {fileID: 2131061363}
@@ -3473,8 +3499,8 @@ MonoBehaviour:
   two_ui: 0
   three_ui: 0
   max_line: {fileID: 1960768380}
-  current_max_line_weight: 30
-  max_line_weight: 30
+  current_max_line_weight: 50
+  max_line_weight: 50
   link_button: {fileID: 1652141070}
   link_button_img:
   - {fileID: 21300000, guid: 50f91d28eed93bf4f96c111d52e61f79, type: 3}

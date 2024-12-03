@@ -5,6 +5,7 @@ using System.Collections;
 using Unity.VisualScripting;
 using UnityEngine.UI;
 using System.IO;
+using UnityEngine.InputSystem;
 
 
 public class GameDirector : MonoBehaviour
@@ -119,6 +120,7 @@ public class GameDirector : MonoBehaviour
         timerDirector = GetComponent<TimerDirector>();
         bagDirector = GetComponent<BagDirector>();
 
+       
         node_num = nodeSprites.Length; // 노드 갯수 하드 코딩 안하게
         g.PrintGraph(g); // 디버깅
         DistanceSet(g); // g 초기화
@@ -693,6 +695,7 @@ public class GameDirector : MonoBehaviour
     {
         int edgeWeight = 0;
         int toNode, fromNode = 0;
+        timerDirector.game_start = false;
 
         is_dk = true;
         // 경로가 남아 있을 때
@@ -754,6 +757,7 @@ public class GameDirector : MonoBehaviour
                     GenerateRandomEdges();
                     chance_line_delete = 3;
                     Set_line_light(chance_line_delete);
+                    timerDirector.game_start = true;
                 }
             }
         }
@@ -780,6 +784,7 @@ public class GameDirector : MonoBehaviour
     void DetectMouseClick()
     {
         if (is_dk) return; // 기차 이동중이면 그냥 클릭 안되게
+        
 
         if (Input.GetMouseButtonDown(0) && delete_check != 1 && link_selector == 0) // 링크 셀렉터가 0인 상태
         {
