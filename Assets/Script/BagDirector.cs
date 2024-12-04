@@ -69,47 +69,7 @@ public class BagDirector : MonoBehaviour
         }
    
     }
-    public void Loot_KanmpSack()
-    {
-        Knampsack(container, mugaeList, valueList, current_bag_count);
-    }
-    public void SortAndUpdateBagUI_UP() // 오름 차순
-    {
-        if (timerDirector.game_end) return;
-
-        List<int> sortedItems = new List<int>();
-
-        for (int i = 0; i < valueList.Count; i++)
-        {
-            sortedItems.Add(i);
-        }
-
-        //quick_sort(valueList, sortedItems, 0, valueList.Count - 1); // 내림 차순
-        sortedItems.Sort((a, b) => valueList[a].CompareTo(valueList[b]));  // 오름 차순으로 정렬
-
-
-        UpdateBagUI(sortedItems, mugaeList, valueList);
-    }
-
-    public void SortAndUpdateBagUI_DOWN() // 내림 차순
-    {
-
-        if (timerDirector.game_end) return;
-
-        List<int> sortedItems = new List<int>();
-
-        for (int i = 0; i < valueList.Count; i++)
-        {
-            sortedItems.Add(i);
-        }
-
-        quick_sort(valueList, sortedItems, 0, valueList.Count - 1); // 내림 차순
-        //sortedItems.Sort((a, b) => valueList[b].CompareTo(valueList[a]));  //  오름 차순
-
-
-        UpdateBagUI(sortedItems, mugaeList, valueList);
-    }
- 
+    //퀵솔트 알고리즘 함수 2개
     void quick_sort(List<int> valueList, List<int> list, int left, int right)
     {
         if (left < right)
@@ -163,8 +123,129 @@ public class BagDirector : MonoBehaviour
         list[high] = tempPivot;
 
         return high; // 피벗이 최종적으로 위치한 인덱스 반환
+
     }
 
+    public void SortAndUpdateBagUI_UP() // 오름 차순 == API 사용한 버전
+    {
+        if (timerDirector.game_end) return;
+
+        List<int> sortedItems = new List<int>();
+
+        for (int i = 0; i < valueList.Count; i++)
+        {
+            sortedItems.Add(i);
+        }
+
+        //quick_sort(valueList, sortedItems, 0, valueList.Count - 1); // 내림 차순
+        sortedItems.Sort((a, b) => valueList[a].CompareTo(valueList[b]));  // 오름 차순으로 정렬
+
+
+        UpdateBagUI(sortedItems, mugaeList, valueList);
+    }
+
+    public void SortAndUpdateBagUI_DOWN() // 내림 차순 == 자체 퀵솔트 함수 사용한 버전
+    {
+
+        if (timerDirector.game_end) return;
+
+        List<int> sortedItems = new List<int>();
+
+        for (int i = 0; i < valueList.Count; i++)
+        {
+            sortedItems.Add(i);
+        }
+
+        quick_sort(valueList, sortedItems, 0, valueList.Count - 1); // 내림 차순
+        //sortedItems.Sort((a, b) => valueList[b].CompareTo(valueList[a]));  //  오름 차순
+
+
+        UpdateBagUI(sortedItems, mugaeList, valueList);
+    }
+
+    // 동적 계획 알고리즘 사용!!!!!!!!!!!
+    void Knampsack(int[,] container, List<int> mugaeList, List<int> valueList, int n) // n은 물건 갯수 노드에 접근시 생기는 추가 물건
+    {
+        for (int i = 0; i < n; i++)
+        {
+            container[i, 0] = 0;
+        }
+        for (int i = 0; i <= bagCapacity; i++) // '<=' 중요!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        {
+            container[0, i] = 0;
+        }
+
+        for (int i = 1; i <= n; i++) // 1번 물건부터 n번 물건까지
+        {
+            for (int w = 1; w <= bagCapacity; w++) // 1부터 bagCapacity까지 모든 용량에 대해 계산
+            {
+                if (mugaeList[i - 1] >= w) // 현재 물건을 배낭에 넣을 수 있는지 확인
+                {
+                    container[i, w] = container[i - 1, w];
+                }
+                else
+                {
+                    container[i, w] = Math.Max(container[i - 1, w], container[i - 1, w - mugaeList[i - 1]] + valueList[i - 1]);
+                }
+            }
+        }
+
+        // 어떤 물건을 담았는지 추적 == 이 코드는 잘 모름 ㅎㅎ;;
+        int remainingCapacity = bagCapacity;
+        List<int> selectedItems = new List<int>(); // 선택된 물건 인덱스를 저장할 리스트
+        int totalValue = 0; // 가치 총합을 저장할 변수
+
+        List<int> temp_mugaeList = new List<int>();  // kg 값들을 저장할 리스트 == 배열
+        List<int> temp_valueList = new List<int>();  // value 값들을 저장할 리스트 == 배열
+
+        Debug.Log(mugaeList.Count);
+
+        // 마지막 물건부터 역추적
+        for (int i = n; i > 0; i--)
+        {
+            if (container[i, remainingCapacity] != container[i - 1, remainingCapacity]) // 현재 물건을 담았으면
+            {
+                selectedItems.Add(i - 1); // 0-based 인덱스이므로 i - 1
+
+                temp_mugaeList.Add(mugaeList[i - 1]);
+                temp_valueList.Add(valueList[i - 1]);
+
+                totalValue += valueList[i - 1]; // 선택된 물건의 가치를 총합에 더하기
+
+                remainingCapacity -= mugaeList[i - 1]; // 그 물건의 무게만큼 용량에서 빼기
+            }
+        }
+
+
+        // 선택된 물건들 출력
+        Debug.Log("선택된 물건들:");
+        UpdateBagUI(selectedItems, mugaeList, valueList); // UI 업데이트 호출
+        foreach (int item in selectedItems)
+        {
+            Debug.Log($"물건 {item} (무게: {mugaeList[item]}, 가치: {valueList[item]})");
+            mugaeList.Add(mugaeList[item]);
+            valueList.Add(mugaeList[item]);
+        }
+
+        Debug.Log($"배낭에 담긴 물건 갯수: {selectedItems.Count}");
+        Debug.Log($"배낭에 담긴 물건들의 총 가치: {totalValue}");
+        current_bag_count = selectedItems.Count;
+        current_bag_score = totalValue;
+        Set_Bag_weight(current_bag_score);
+
+        mugaeList.Clear();
+        valueList.Clear();
+        mugaeList.AddRange(temp_mugaeList);  // 새 리스트에 값을 추가
+        valueList.AddRange(temp_valueList);  // 새 리스트에 값을 추가
+
+        Debug.Log(mugaeList.Count);
+
+    }
+
+    public void Loot_KanmpSack()
+    {
+        Knampsack(container, mugaeList, valueList, current_bag_count);
+    }
 
     public void SetBag_SetScore() // 가방에 있는 거 점수로 치환 및 가방 초기화
     {
@@ -224,86 +305,6 @@ public class BagDirector : MonoBehaviour
                 }
             }
         }
-    }
-
-
-    // 동적 계획 알고리즘 사용!!!!!!!!!!!
-    void Knampsack(int[,] container, List<int> mugaeList, List<int> valueList, int n) // n은 물건 갯수 노드에 접근시 생기는 추가 물건
-    {
-        for(int i = 0; i < n; i++)
-        {
-            container[i, 0] = 0;
-        }
-        for(int i = 0; i <= bagCapacity; i++) // '<=' 중요!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        {
-            container[0,i] = 0; 
-        }
-
-        for (int i = 1; i <= n; i++) // 1번 물건부터 n번 물건까지
-        {
-            for (int w = 1; w <= bagCapacity; w++) // 1부터 bagCapacity까지 모든 용량에 대해 계산
-            {
-                if (mugaeList[i - 1] >= w) // 현재 물건을 배낭에 넣을 수 있는지 확인
-                {
-                    container[i, w] = container[i - 1, w];
-                }
-                else
-                {
-                    container[i, w] = Math.Max(container[i - 1, w], container[i - 1, w - mugaeList[i - 1]] + valueList[i - 1]);
-                }
-            }
-        }
-
-        // 어떤 물건을 담았는지 추적 == 이 코드는 잘 모름 ㅎㅎ;;
-        int remainingCapacity = bagCapacity;
-        List<int> selectedItems = new List<int>(); // 선택된 물건 인덱스를 저장할 리스트
-        int totalValue = 0; // 가치 총합을 저장할 변수
-
-        List<int> temp_mugaeList = new List<int>();  // kg 값들을 저장할 리스트 == 배열
-        List<int> temp_valueList = new List<int>();  // value 값들을 저장할 리스트 == 배열
-
-        Debug.Log(mugaeList.Count);
-   
-        // 마지막 물건부터 역추적
-        for (int i = n; i > 0; i--)
-        {
-            if (container[i, remainingCapacity] != container[i - 1, remainingCapacity]) // 현재 물건을 담았으면
-            {
-                selectedItems.Add(i - 1); // 0-based 인덱스이므로 i - 1
-
-                temp_mugaeList.Add(mugaeList[i - 1]);
-                temp_valueList.Add(valueList[i - 1]);
-
-                totalValue += valueList[i - 1]; // 선택된 물건의 가치를 총합에 더하기
-
-                remainingCapacity -= mugaeList[i - 1]; // 그 물건의 무게만큼 용량에서 빼기
-            }
-        }
-
-  
-        // 선택된 물건들 출력
-        Debug.Log("선택된 물건들:");
-        UpdateBagUI(selectedItems, mugaeList, valueList); // UI 업데이트 호출
-        foreach (int item in selectedItems)
-        {
-            Debug.Log($"물건 {item} (무게: {mugaeList[item]}, 가치: {valueList[item]})");
-            mugaeList.Add(mugaeList[item]);
-            valueList.Add(mugaeList[item]);
-        }
-
-        Debug.Log($"배낭에 담긴 물건 갯수: {selectedItems.Count}");
-        Debug.Log($"배낭에 담긴 물건들의 총 가치: {totalValue}");
-        current_bag_count = selectedItems.Count;
-        current_bag_score = totalValue;
-        Set_Bag_weight(current_bag_score);
-
-        mugaeList.Clear();
-        valueList.Clear();
-        mugaeList.AddRange(temp_mugaeList);  // 새 리스트에 값을 추가
-        valueList.AddRange(temp_valueList);  // 새 리스트에 값을 추가
-
-        Debug.Log(mugaeList.Count);
-
     }
     private void UpdateBagUI(List<int> selectedItems, List<int> mugaeList, List<int> valueList)
     {

@@ -66,6 +66,8 @@ public class GameDirector : MonoBehaviour
 
     bool dk_can; // 다익스트라 알고리즘이 시행 불가능할 경우, 최단 경로로 이동하는 함수 실행 불가능하게
 
+    ///////////// 이동 실패시 앙탕 부리는거
+
     float vibrationAmount = 0.2f;
     float vibrationSpeed = 20f;    // 진동 속도
     Vector3 startPosition;
@@ -143,7 +145,7 @@ public class GameDirector : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space) && !isTrainMoving)
         {
             Debug.Log("train_start");
-            CheckCurrentCircleConnections(); //스페이스바 누르면 기차가 무한히 움직임
+            //CheckCurrentCircleConnections(); //스페이스바 누르면 기차가 무한히 움직임
         }
         if( is_dk && timerDirector.game_end != true) // 프레임 마다 이동
         {
@@ -151,14 +153,14 @@ public class GameDirector : MonoBehaviour
         }
         if (isTrainMoving && timerDirector.game_end != true) // 프레임 마다 이동
         {
-            MoveTrainToTarget(); 
+            //MoveTrainToTarget(); 
         }
 
         if (Input.GetKeyDown(KeyCode.M))  // M 키를 눌렀을 때 그래프 확인
         {
             g.PrintGraph(g);
         }
-        if (Input.GetKeyDown(KeyCode.N))  // N 키를 눌렀을 때 그래프 확인
+        if (Input.GetKeyDown(KeyCode.N))  // G 키를 눌렀을 때 그래프 확인
         {
             PrintDistance(g);
         }
@@ -223,22 +225,6 @@ public class GameDirector : MonoBehaviour
 
     }
 
-    void Set_line_light( int n ) // 받은 숫자 만큼만 불빛 활성화 n = 3, 2, 1, 0 만 들어옴
-    {
-        for(int i = 0; i < 3; i++) // 불은 총 3개. 0, 1, 2
-        {
-            if( i < n )
-            {
-                line_light[i].sprite = line_ight_img[0];  // 불좀 켜줄래?
-            }
-            else
-            {
-                line_light[i].sprite = line_ight_img[1];  // 불좀 꺼줄래?
-            }
-        }
-
-    }
-
     public void Press_Link_Button()
     {
 
@@ -290,145 +276,6 @@ public class GameDirector : MonoBehaviour
         }
     }
 
-    IEnumerator ShowStartImages() // 게임 시작!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    {
-
-        foreach (Sprite icon in start_icon)
-        {
-            start_img.sprite = icon;  // 현재 스프라이트 설정
-            yield return new WaitForSeconds(1f); // 1초 대기
-
-        }
-
-        start_img.enabled = false; // 이미지 숨기기
-       
-        SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
-        SetRandomLine(); // 다음 간선 유아이 생성
-        timerDirector.game_start = true;
-        bagDirector.ActivateAndSetRandomSprites();
-        GenerateRandomEdges();
-        GenerateRandomEdges();
-    }
-
-    IEnumerator VibrateSpider()
-    {
-        float elapsedTime = 0f;
-        vib = true;
-
-        while (elapsedTime < 0.6f) // 진동을 1초 동안만 진행
-        {
-            // Sin 함수로 상하 진동
-            float offset = Mathf.Sin(elapsedTime * vibrationSpeed) * vibrationAmount;
-            train.transform.position = startPosition + new Vector3(0, offset, 0); // Y축으로 진동
-
-            elapsedTime += Time.deltaTime; // 시간 증가
-            yield return null;
-        }
-
-        train.transform.position = startPosition; // 진동 후 원위치로
-        vib = false;
-    }
-
-    void SetRandomImages(int n)
-    {
-
-        // 0부터 7까지의 노드 중 랜덤하게 3개 선택, n은 제외
-        List<int> randomNodes = new List<int>();
-        while (randomNodes.Count < 3)
-        {
-            int randomNum = Random.Range(0, nodeSprites.Length);
-            if (randomNum != n && !randomNodes.Contains(randomNum)) // n과 중복된 값 제외
-            {
-                randomNodes.Add(randomNum);
-            }
-        }
-        one_ui = randomNodes[0];
-        two_ui = randomNodes[1];
-        three_ui = randomNodes[2];
-
-        // 선택된 노드에 따라 이미지 변경
-        for (int i = 0; i < uiImages.Length; i++)
-        {
-            uiImages[i].sprite = nodeSprites[randomNodes[i]]; // 각 Image에 스프라이트 할당
-        }
-    }
-
-    void SwapImages()
-    {
-        // 첫 번째 이미지 값은 두 번째로, 두 번째 이미지 값은 세 번째로 변경
-        int temp = one_ui;
-        one_ui = two_ui;
-        two_ui = three_ui;
-
-        // 세 번째 이미지는 두 번째 이미지 값과 겹치지 않는 랜덤 값으로 변경
-        int randomNum;
-        do
-        {
-            randomNum = Random.Range(0, nodeSprites.Length);  // 0부터 7까지 랜덤값
-        } while (randomNum == temp || randomNum == one_ui || randomNum == two_ui);  // 두 번째 이미지 값과 겹치지 않게
-
-        three_ui = randomNum;
-
-        // 변경된 이미지 값으로 UI 업데이트
-        uiImages[0].sprite = nodeSprites[one_ui];
-        //uiImages[1].sprite = nodeSprites[two_ui];
-        //uiImages[2].sprite = nodeSprites[three_ui]; // 이거 가는 노드는 하나만 보이게
-    }
-
-    void SetRandomLine()
-    {
-        line_one.text = Random.Range(w_s, w_e + 1).ToString();  // w_s 부터 w_e까지 랜덤 값 (w_e 포함)
-        line_two.text = Random.Range(w_s, w_e + 1).ToString();
-        line_three.text = Random.Range(w_s, w_e + 1).ToString();
-        next_line = int.Parse(line_one.text);
-    }
-
-    void SwapLine()
-    {
-        line_one.text = line_two.text;
-        line_two.text = line_three.text;
-        line_three.text = Random.Range(w_s, w_e + 1).ToString();
-        next_line = int.Parse(line_one.text);
-    }
-
-    void DeleteAllEdges()
-    {
-        // 모든 정점 쌍에 대해 DeleteEdge 호출
-        for (int i = 0; i < circles.Length; i++)
-        {
-            for (int j = i + 1; j < circles.Length; j++)
-            {
-                // 두 정점 사이 간선을 삭제
-                DeleteEdge(circles[i], circles[j]);
-            }
-        }
-        g.SetGraph(node_num);
-    }
-    void GenerateRandomEdges()
-    {
-
-        List<(int, int)> possibleEdges = new List<(int, int)>();
-
-        // 가능한 모든 간선 쌍 생성 (중복 방지)
-        for (int i = 0; i < circles.Length; i++)
-        {
-            for (int j = i + 1; j < circles.Length; j++)
-            {
-                possibleEdges.Add((i, j));
-            }
-        }
-
-        // 정점 - 10개의 간선을 랜덤하게 선택하여 생성
-        int edgeCount = circles.Length/2;
-        for (int k = 0; k < edgeCount; k++)
-        {
-            int randomIndex = Random.Range(0, possibleEdges.Count);
-            (int startIdx, int endIdx) = possibleEdges[randomIndex];
-            possibleEdges.RemoveAt(randomIndex);
-
-            CreateEdge(circles[startIdx], circles[endIdx]);
-        }
-    }
 
     // 다익스트라로 길 찾는 코드--------------------------------------------------------------
 
@@ -451,7 +298,7 @@ public class GameDirector : MonoBehaviour
         return minpos;
     }
 
-    void Shortest_path(GraphType g, int start)
+    void Shortest_path(GraphType g, int start) // 다익스트라 메인 함수!!!!!
     {
         int i, u, w;
         saveRoute = new int[g.n];
@@ -500,40 +347,79 @@ public class GameDirector : MonoBehaviour
         }
     }
 
-    void TraceAllPaths(int start) // 모든 경로 확인
+    void Dk_Move()
     {
-        // 모든 노드에 대해 경로 추적
-        for (int i = 0; i < g.n; i++)
+        int edgeWeight = 0;
+        int toNode, fromNode = 0;
+        timerDirector.game_start = false;
+
+        is_dk = true;
+        // 경로가 남아 있을 때
+        if (currentPathIndex < path_num) //
         {
-            string route = "";
-            Debug.Log("시작 꼭지점 " + vertex[start] + "부터 꼭지점 " + vertex[i] + "까지의 경로");
+            // 현재 목표 지점 (dk_path[currentPathIndex]는 목표로 가야 할 circle 번호)
+            Vector3 targetPosition2D = new Vector3(circles[dk_path[currentPathIndex]].transform.position.x,
+                                                   circles[dk_path[currentPathIndex]].transform.position.y,
+                                                   -5f);
 
-            int index = i;
+            // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
+            Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
 
-            // 경로 추적 (start에서 i까지)
-            Stack<int> path = new Stack<int>(); // Stack을 이용하여 경로 뒤집기
+            train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.2f);// 기차 이동 속도
 
-            // 경로 추적
-            while (index != start)
+            // 앞으로 이동할 간선의 가중치 디버깅 출력
+            if (currentPathIndex > 0)
             {
-                path.Push(vertex[index]); // 현재 노드를 스택에 추가
-                index = stringToInt(saveRoute[index]);  // 결정적인 역할을 한 꼭지점으로 이동
+                fromNode = dk_path[currentPathIndex - 1]; // 출발 노드
+                toNode = dk_path[currentPathIndex];       // 도착 노드
+                edgeWeight = g.weight[fromNode, toNode];  // 간선의 가중치
             }
 
-            // start 노드도 포함시키기
-            path.Push(vertex[start]);
-
-            // 경로 출력
-            while (path.Count > 0)
+            // 목표 지점에 도달했는지 확인 (x, y 기준으로만 거리 확인)
+            if (trainPosition2D == targetPosition2D)  // 목표 위치에 충분히 가까워졌을 때
             {
-                route += " " + path.Pop();
-            }
+                //Debug.Log(currentPathIndex);
+                // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
+                currentPathIndex++;
+                bagDirector.Check_Circle_Bag();
+                bagDirector.Loot_KanmpSack();
 
-            Debug.Log(route);
+                int n = GetCircle();  // 현재 선택된 Circle의 인덱스를 가져옴
+                if (bagDirector.mid_node_one != n && bagDirector.mid_node_two != n) // 경유지 통과 아닌 경우
+                {
+                    node_pass.Play();
+                    current_max_line_weight -= edgeWeight;
+                    max_line.text = current_max_line_weight.ToString();
+                }
+                else// 경유지 인 경우
+                {
+                    basket_pass.Play();
+                    bagDirector.SetBag_SetScore(); // 과일 점수화
+                }
+
+                // 경로 끝까지 갔으면 이동을 종료
+                if (currentPathIndex >= path_num)
+                {
+                    train.transform.position = new Vector3(targetPosition2D.x, targetPosition2D.y, -5f); // 최종 도착 시 z 값 고정
+                    isTrainMoving = false;  // 기차 이동 완료
+                    is_dk = false;
+                    closestCircle = null;
+                    targetCircle = null;
+                    currentPathIndex = 1;
+                    SwapImages();
+                    bagDirector.ActivateAndSetRandomSprites();
+                    DeleteAllEdges();
+                    GenerateRandomEdges();
+                    GenerateRandomEdges();
+                    chance_line_delete = 3;
+                    Set_line_light(chance_line_delete);
+                    timerDirector.game_start = true;
+                }
+            }
         }
     }
 
-    void TracePath(int start, int end) // 특정 경로 확인
+    void TracePath(int start, int end) // 특정 경로 확인 == 게임에서 사용하는 경로 탐색 함수. 시작점과 끝점이 정해져 있기 때문에
     {
         string route = "";
         Debug.Log("시작 꼭지점 " + vertex[start] + "부터 꼭지점 " + vertex[end] + "까지의 경로");
@@ -567,7 +453,38 @@ public class GameDirector : MonoBehaviour
         Debug.Log(route);
     }
 
+    void TraceAllPaths(int start) // 모든 경로 확인 == 게임에서는 사실상 목표가 정해져 있기 때문에 쓸모는 없지만 다익스트라 코드 구현에서 만듬. 게임에서는 굳이 모든 점까지의 경로를 확인할 필요가 없음.
+    {
+        // 모든 노드에 대해 경로 추적
+        for (int i = 0; i < g.n; i++)
+        {
+            string route = "";
+            Debug.Log("시작 꼭지점 " + vertex[start] + "부터 꼭지점 " + vertex[i] + "까지의 경로");
 
+            int index = i;
+
+            // 경로 추적 (start에서 i까지)
+            Stack<int> path = new Stack<int>(); // Stack을 이용하여 경로 뒤집기
+
+            // 경로 추적
+            while (index != start)
+            {
+                path.Push(vertex[index]); // 현재 노드를 스택에 추가
+                index = stringToInt(saveRoute[index]);  // 결정적인 역할을 한 꼭지점으로 이동
+            }
+
+            // start 노드도 포함시키기
+            path.Push(vertex[start]);
+
+            // 경로 출력
+            while (path.Count > 0)
+            {
+                route += " " + path.Pop();
+            }
+
+            Debug.Log(route);
+        }
+    }
 
     // 노드를 int로 변환하는 함수 (필요한 경우에만 사용)
     int stringToInt(int vertex)
@@ -598,50 +515,7 @@ public class GameDirector : MonoBehaviour
 
     // 아래는 기차 베이스 코드-----------------------------------------------------------------------
 
-    void CheckCurrentCircleConnections()
-    {
-        
-        closestCircle = GetClosestCircle(train.transform.position);
-
-        if (closestCircle != null)
-        {
-            int currentIndex = System.Array.IndexOf(circles, closestCircle);
-            Debug.Log("현재 위치한 원 = " + closestCircle.name);
-
-            targetCircle = null;
-            int minWeight = int.MaxValue;
-
-            foreach (var edge in edges)
-            {
-                if (edge.Item1 == currentIndex || edge.Item2 == currentIndex)
-                {
-                    int connectedIndex = (edge.Item1 == currentIndex) ? edge.Item2 : edge.Item1;
-                    int weight = edgeWeights[(edge.Item1, edge.Item2)];
-
-                    Debug.Log("연결된 원 = " + circles[connectedIndex].name + ", 가중치 = " + weight);
-
-                    if (weight < minWeight)
-                    {
-                        minWeight = weight;
-                        targetCircle = circles[connectedIndex];
-                    }
-                }
-            }
-
-            if (targetCircle != null)
-            {
-                Debug.Log("가장 낮은 가중치로 이동할 원 = " + targetCircle.name + ", 가중치 = " + minWeight);
-                targetPosition = targetCircle.transform.position;
-                isTrainMoving = true;
-                trainMoveStartTime = Time.time;
-
-            }
-            else
-            {
-                Debug.Log("line_off");
-            }
-        }
-    }
+    
 
     public int GetCircle()
     {
@@ -653,115 +527,6 @@ public class GameDirector : MonoBehaviour
         return n;
     }
 
-    void MoveTrainToTarget()
-    {
-
-        // 일정한 속도로 이동 (속도 = 거리 / 시간)
-
-        Vector3 targetPosition2D = new Vector3(targetCircle.transform.position.x,
-                                                   targetCircle.transform.position.y,
-                                                   -5f);
-
-        // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
-        Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
-
-        train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.1f);
-
-
-        if (trainPosition2D == targetPosition2D )
-        {
-            // 지정한 시간이 지나면 순간이동
-
-            isTrainMoving = false;  // 이동 완료 후 isTrainMoving을 false로 설정
-            closestCircle = null;
-            targetCircle = null;
-
-            StartCoroutine(RestoreTrainMovement());
-        }
-    }
-
-    IEnumerator RestoreTrainMovement()
-    {
-        // 1초 대기
-        yield return new WaitForSeconds(1f);
-
-        // 1초 후에 기차가 다시 이동할 수 있도록 설정
-        Debug.Log('a');
-        CheckCurrentCircleConnections();
-        isTrainMoving = true;
-    }
-
-    void Dk_Move()
-    {
-        int edgeWeight = 0;
-        int toNode, fromNode = 0;
-        timerDirector.game_start = false;
-
-        is_dk = true;
-        // 경로가 남아 있을 때
-        if (currentPathIndex < path_num) //
-        {
-            // 현재 목표 지점 (dk_path[currentPathIndex]는 목표로 가야 할 circle 번호)
-            Vector3 targetPosition2D = new Vector3(circles[dk_path[currentPathIndex]].transform.position.x,
-                                                   circles[dk_path[currentPathIndex]].transform.position.y,
-                                                   -5f);
-
-            // 기차의 현재 위치를 2D로 변환 (x, y 값만 사용)
-            Vector3 trainPosition2D = new Vector3(train.transform.position.x, train.transform.position.y, -5f);
-
-            train.transform.position = Vector3.MoveTowards(trainPosition2D, targetPosition2D, 0.2f);// 기차 이동 속도
-
-            // 앞으로 이동할 간선의 가중치 디버깅 출력
-            if (currentPathIndex > 0)
-            {
-                fromNode = dk_path[currentPathIndex - 1]; // 출발 노드
-                toNode = dk_path[currentPathIndex];       // 도착 노드
-                edgeWeight = g.weight[fromNode, toNode];  // 간선의 가중치
-            }
-
-            // 목표 지점에 도달했는지 확인 (x, y 기준으로만 거리 확인)
-            if (trainPosition2D == targetPosition2D )  // 목표 위치에 충분히 가까워졌을 때
-            {
-                //Debug.Log(currentPathIndex);
-                // 목표 지점에 도달하면 currentPathIndex를 증가시켜 다음 경로로 이동
-                currentPathIndex++;
-                bagDirector.Check_Circle_Bag();
-                bagDirector.Loot_KanmpSack();
-
-                int n = GetCircle();  // 현재 선택된 Circle의 인덱스를 가져옴
-                if ( bagDirector.mid_node_one != n && bagDirector.mid_node_two != n ) // 경유지 통과 아닌 경우
-                {
-                    node_pass.Play();
-                    current_max_line_weight -= edgeWeight;
-                    max_line.text = current_max_line_weight.ToString();
-                }
-                else// 경유지 인 경우
-                {
-                    basket_pass.Play();
-                    bagDirector.SetBag_SetScore(); // 과일 점수화
-                }
-
-                // 경로 끝까지 갔으면 이동을 종료
-                if (currentPathIndex >= path_num)
-                {
-                    train.transform.position = new Vector3(targetPosition2D.x, targetPosition2D.y, -5f); // 최종 도착 시 z 값 고정
-                    isTrainMoving = false;  // 기차 이동 완료
-                    is_dk = false;
-                    closestCircle = null;
-                    targetCircle = null;
-                    currentPathIndex = 1;
-                    SwapImages();
-                    bagDirector.ActivateAndSetRandomSprites();
-                    DeleteAllEdges();
-                    GenerateRandomEdges();
-                    GenerateRandomEdges();
-                    chance_line_delete = 3;
-                    Set_line_light(chance_line_delete);
-                    timerDirector.game_start = true;
-                }
-            }
-        }
-    }
 
 
     public GameObject GetClosestCircle(Vector3 position)
@@ -1037,6 +802,163 @@ public class GameDirector : MonoBehaviour
         }
 
         return false;
+    }
+
+
+    IEnumerator ShowStartImages() // 게임 시작!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    {
+
+        foreach (Sprite icon in start_icon)
+        {
+            start_img.sprite = icon;  // 현재 스프라이트 설정
+            yield return new WaitForSeconds(1f); // 1초 대기
+
+        }
+
+        start_img.enabled = false; // 이미지 숨기기
+
+        SetRandomImages(0); // 시작지인 0 은 랜덤값에서 제외
+        SetRandomLine(); // 다음 간선 유아이 생성
+        timerDirector.game_start = true;
+        bagDirector.ActivateAndSetRandomSprites();
+        GenerateRandomEdges();
+        GenerateRandomEdges();
+    }
+
+    IEnumerator VibrateSpider()
+    {
+        float elapsedTime = 0f;
+        vib = true;
+
+        while (elapsedTime < 0.6f) // 진동을 1초 동안만 진행
+        {
+            // Sin 함수로 상하 진동
+            float offset = Mathf.Sin(elapsedTime * vibrationSpeed) * vibrationAmount;
+            train.transform.position = startPosition + new Vector3(0, offset, 0); // Y축으로 진동
+
+            elapsedTime += Time.deltaTime; // 시간 증가
+            yield return null;
+        }
+
+        train.transform.position = startPosition; // 진동 후 원위치로
+        vib = false;
+    }
+
+    void SetRandomImages(int n)
+    {
+
+        // 0부터 7까지의 노드 중 랜덤하게 3개 선택, n은 제외
+        List<int> randomNodes = new List<int>();
+        while (randomNodes.Count < 3)
+        {
+            int randomNum = Random.Range(0, nodeSprites.Length);
+            if (randomNum != n && !randomNodes.Contains(randomNum)) // n과 중복된 값 제외
+            {
+                randomNodes.Add(randomNum);
+            }
+        }
+        one_ui = randomNodes[0];
+        two_ui = randomNodes[1];
+        three_ui = randomNodes[2];
+
+        // 선택된 노드에 따라 이미지 변경
+        for (int i = 0; i < uiImages.Length; i++)
+        {
+            uiImages[i].sprite = nodeSprites[randomNodes[i]]; // 각 Image에 스프라이트 할당
+        }
+    }
+
+    void SwapImages()
+    {
+        // 첫 번째 이미지 값은 두 번째로, 두 번째 이미지 값은 세 번째로 변경
+        int temp = one_ui;
+        one_ui = two_ui;
+        two_ui = three_ui;
+
+        // 세 번째 이미지는 두 번째 이미지 값과 겹치지 않는 랜덤 값으로 변경
+        int randomNum;
+        do
+        {
+            randomNum = Random.Range(0, nodeSprites.Length);  // 0부터 7까지 랜덤값
+        } while (randomNum == temp || randomNum == one_ui || randomNum == two_ui);  // 두 번째 이미지 값과 겹치지 않게
+
+        three_ui = randomNum;
+
+        // 변경된 이미지 값으로 UI 업데이트
+        uiImages[0].sprite = nodeSprites[one_ui];
+        //uiImages[1].sprite = nodeSprites[two_ui];
+        //uiImages[2].sprite = nodeSprites[three_ui]; // 이거 가는 노드는 하나만 보이게
+    }
+
+    void SetRandomLine()
+    {
+        line_one.text = Random.Range(w_s, w_e + 1).ToString();  // w_s 부터 w_e까지 랜덤 값 (w_e 포함)
+        line_two.text = Random.Range(w_s, w_e + 1).ToString();
+        line_three.text = Random.Range(w_s, w_e + 1).ToString();
+        next_line = int.Parse(line_one.text);
+    }
+
+    void SwapLine()
+    {
+        line_one.text = line_two.text;
+        line_two.text = line_three.text;
+        line_three.text = Random.Range(w_s, w_e + 1).ToString();
+        next_line = int.Parse(line_one.text);
+    }
+
+    void DeleteAllEdges()
+    {
+        // 모든 정점 쌍에 대해 DeleteEdge 호출
+        for (int i = 0; i < circles.Length; i++)
+        {
+            for (int j = i + 1; j < circles.Length; j++)
+            {
+                // 두 정점 사이 간선을 삭제
+                DeleteEdge(circles[i], circles[j]);
+            }
+        }
+        g.SetGraph(node_num);
+    }
+    void GenerateRandomEdges()
+    {
+
+        List<(int, int)> possibleEdges = new List<(int, int)>();
+
+        // 가능한 모든 간선 쌍 생성 (중복 방지)
+        for (int i = 0; i < circles.Length; i++)
+        {
+            for (int j = i + 1; j < circles.Length; j++)
+            {
+                possibleEdges.Add((i, j));
+            }
+        }
+
+        // 정점 - 10개의 간선을 랜덤하게 선택하여 생성
+        int edgeCount = circles.Length / 2;
+        for (int k = 0; k < edgeCount; k++)
+        {
+            int randomIndex = Random.Range(0, possibleEdges.Count);
+            (int startIdx, int endIdx) = possibleEdges[randomIndex];
+            possibleEdges.RemoveAt(randomIndex);
+
+            CreateEdge(circles[startIdx], circles[endIdx]);
+        }
+    }
+
+    void Set_line_light(int n) // 받은 숫자 만큼만 불빛 활성화 n = 3, 2, 1, 0 만 들어옴
+    {
+        for (int i = 0; i < 3; i++) // 불은 총 3개. 0, 1, 2
+        {
+            if (i < n)
+            {
+                line_light[i].sprite = line_ight_img[0];  // 불좀 켜줄래?
+            }
+            else
+            {
+                line_light[i].sprite = line_ight_img[1];  // 불좀 꺼줄래?
+            }
+        }
+
     }
 
 }
